@@ -3,6 +3,7 @@
 import PackageDescription
 
 var products: [Product] = [
+  .library(name: "LiveText", targets: ["LiveText"]),
   .library(name: "LiveTextSVG", targets: ["LiveTextSVG"]),
 ]
 
@@ -80,7 +81,7 @@ var targets: [Target] = [
       name: "LiveTextWritingUI",
       dependencies: [
         "LiveTextSwiftUI", "LiveTextCanvas", "ChalkLineEffects", "LiveTextEffects",
-        "LiveTextLayout",
+        "LiveTextLayout", "LiveTextAppleRendering",
       ],
       path: "Sources/LiveTextWritingUI"
     ),
@@ -97,7 +98,7 @@ var targets: [Target] = [
       resources: [.process("Shaders")]
     ),
     .target(name: "LiveTextPresentation", dependencies: [
-      "LiveTextWritingUI", "LiveTextSwiftUI", "LiveTextAppleRendering", "DustKit",
+      "LiveTextWritingUI", "LiveTextSwiftUI", "LiveTextAppleRendering", "LiveTextLayout", "DustKit",
     ], path: "Sources/LiveTextPresentation"),
   ]
 #endif
