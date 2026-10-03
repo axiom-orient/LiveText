@@ -112,8 +112,8 @@ public struct InlineTerminalDustSurface<LiveContent: View, SourceContent: View>:
       }
     }
     .onAppear { refreshTerminalSource() }
-    .onChange(of: refreshToken) { _ in refreshTerminalSource() }
-    .onChange(of: controller.lastErrorMessage) { message in
+    .onChangeCompatible(of: refreshToken) { _ in refreshTerminalSource() }
+    .onChangeCompatible(of: controller.lastErrorMessage) { message in
       guard let message else { return }
       onSourceFailure?(message)
     }

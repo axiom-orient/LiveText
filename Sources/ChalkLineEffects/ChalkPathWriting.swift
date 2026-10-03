@@ -168,7 +168,7 @@ private struct ChalkPathTimeline: View {
         motion: motion,
         progress: progress
       )
-      .onChange(of: progress) { value in
+      .onChangeCompatible(of: progress) { value in
         guard value >= 1, !playback.isPaused else { return }
         playback.markComplete(at: now)
         onCompletion?()

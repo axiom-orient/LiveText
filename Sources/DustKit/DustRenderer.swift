@@ -1,10 +1,7 @@
 #if os(iOS)
+import DustKitResources
 import MetalKit
 import UIKit
-
-enum DustKitResources {
-  static let bundle = Bundle.module
-}
 
 @MainActor
 final class DustRenderer: NSObject, MTKViewDelegate {
@@ -60,7 +57,7 @@ final class DustRenderer: NSObject, MTKViewDelegate {
   /// invalidate an in-flight GPU completion that is still safe to publish.
   private var sourceGeneration: UInt64 = 0
 
-  init(bundle: Bundle = DustKitResources.bundle) throws {
+  init(bundle: Bundle = DustKitResourceBundle.bundle) throws {
     guard let device = MTLCreateSystemDefaultDevice() else {
       throw DustRenderingError.metalUnavailable
     }

@@ -84,7 +84,18 @@ var targets: [Target] = [
       ],
       path: "Sources/LiveTextWritingUI"
     ),
-    .target(name: "DustKit", path: "Sources/DustKit", resources: [.process("Shaders")]),
+    .target(
+      name: "DustKit",
+      dependencies: [
+        .target(name: "DustKitResources", condition: .when(platforms: [.iOS, .macCatalyst]))
+      ],
+      path: "Sources/DustKit"
+    ),
+    .target(
+      name: "DustKitResources",
+      path: "Sources/DustKitResources",
+      resources: [.process("Shaders")]
+    ),
     .target(name: "LiveTextPresentation", dependencies: [
       "LiveTextWritingUI", "LiveTextSwiftUI", "LiveTextAppleRendering", "DustKit",
     ], path: "Sources/LiveTextPresentation"),
