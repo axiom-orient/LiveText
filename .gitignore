@@ -1,0 +1,18 @@
+# macOS metadata.
+.DS_Store
+._*
+
+# SwiftPM and Xcode generated state.
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.xcresult/
+*.xcarchive/
+*.dSYM/
+*.profdata
+*.gcda
+*.gcno
