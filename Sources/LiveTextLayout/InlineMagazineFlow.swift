@@ -176,37 +176,18 @@ public struct InlineMagazineStyle: Sendable, Hashable {
   }
 }
 
-/// Container-level composition mode. `.inline` preserves the legacy flow geometry;
-/// `.magazine` adds validated host-media exclusions before the same layout engine runs.
-public enum InlineFlowLayoutStyle: Sendable, Hashable {
-  case inline
-  case magazine(InlineMagazineStyle)
-
-  /// New LiveText scenes use the magazine policy by default.
-  public static var standard: Self { .magazine(.standard) }
-}
-
 extension InlineFlowRegion {
-  /// Creates a flow region using an explicit container composition style.
-  ///
-  /// The style is projected to ordinary exclusions and is not persisted as a second geometry
-  /// authority. Existing `InlineFlowRegion` Codable data therefore keeps the same schema.
+  /// Creates a flow region with host media projected into validated exclusions.
   public init(
     rect: InlineFlowRect,
     insets: InlineFlowInsets = .zero,
     exclusions: [InlineFlowExclusion] = [],
     revision: UInt64 = 0,
-    layoutStyle: InlineFlowLayoutStyle
+    magazineStyle: InlineMagazineStyle
   ) throws {
     try insets.validate()
     let contentRect = try rect.inset(by: insets)
-    let styleExclusions: [InlineFlowExclusion]
-    switch layoutStyle {
-    case .inline:
-      styleExclusions = []
-    case .magazine(let style):
-      styleExclusions = try style.projectedExclusions(in: contentRect)
-    }
+    let styleExclusions = try magazineStyle.projectedExclusions(in: contentRect)
     try self.init(
       rect: rect,
       insets: insets,

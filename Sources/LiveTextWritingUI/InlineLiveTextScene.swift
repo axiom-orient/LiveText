@@ -16,14 +16,14 @@ public struct InlineLiveTextLayoutConfiguration: Sendable, Hashable {
   public let leading: Double
   public let revision: UInt64
   public let oversizedVectorPolicy: InlineOversizedVectorPolicy
-  public let layoutStyle: InlineFlowLayoutStyle
+  public let magazineStyle: InlineMagazineStyle
 
   public init(
     width: Double,
     leading: Double = 0,
     revision: UInt64 = 0,
     oversizedVectorPolicy: InlineOversizedVectorPolicy = .reject,
-    layoutStyle: InlineFlowLayoutStyle = .standard
+    magazineStyle: InlineMagazineStyle = .standard
   ) throws {
     guard width.isFinite, width >= 0 else {
       throw InlineLayoutError.invalidWidth(width)
@@ -35,7 +35,7 @@ public struct InlineLiveTextLayoutConfiguration: Sendable, Hashable {
     self.leading = leading
     self.revision = revision
     self.oversizedVectorPolicy = oversizedVectorPolicy
-    self.layoutStyle = layoutStyle
+    self.magazineStyle = magazineStyle
   }
 }
 
@@ -81,7 +81,7 @@ public struct InlineLiveTextScene<Provider: InlineAssetGeometryProvider> {
         height: Double.greatestFiniteMagnitude
       ),
       revision: configuration.revision,
-      layoutStyle: configuration.layoutStyle
+      magazineStyle: configuration.magazineStyle
     )
     let layout = try engine.layout(prepared: prepared, flow: flow)
     let plan = try InlineRenderPlan(prepared: prepared, layout: layout)

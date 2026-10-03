@@ -35,7 +35,7 @@ public struct InlineLayoutEngine: Sendable {
       rect: try InlineFlowRect(
         x: 0, y: 0, width: width, height: Double.greatestFiniteMagnitude
       ),
-      layoutStyle: .standard
+      magazineStyle: .standard
     )
     return try layout(
       prepared: prepared,
