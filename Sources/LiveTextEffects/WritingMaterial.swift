@@ -155,7 +155,7 @@ public struct WritingChalkConfiguration: Codable, Equatable, Hashable, Sendable 
     grainScale: Double = 3.5,
     edgeRoughness: Double = 0.14,
     textureStyle: WritingChalkTextureStyle = .fineGrain,
-    style: WritingChalkStyle = .fineLine
+    style: WritingChalkStyle = .dryBrush
   ) throws {
     for (field, value) in [
       ("grainAmount", grainAmount),
@@ -258,7 +258,7 @@ public struct WritingChalkConfiguration: Codable, Equatable, Hashable, Sendable 
     textureStyle: .referenceSampled
   )
 
-  public static let `default` = classic
+  public static let `default` = classic.withStyle(.dryBrush)
 
   package init(
     validatedSeed seed: UInt64,

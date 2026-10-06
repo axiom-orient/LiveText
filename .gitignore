@@ -16,3 +16,6 @@ xcuserdata/
 *.profdata
 *.gcda
 *.gcno
+
+# Generated local demo app.
+/dist/

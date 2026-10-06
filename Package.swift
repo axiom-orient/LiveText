@@ -100,7 +100,21 @@ var targets: [Target] = [
     .target(name: "LiveTextPresentation", dependencies: [
       "LiveTextWritingUI", "LiveTextSwiftUI", "LiveTextAppleRendering", "LiveTextLayout", "DustKit",
     ], path: "Sources/LiveTextPresentation"),
+    .testTarget(
+      name: "LiveTextChalkRenderingTests",
+      dependencies: ["LiveTextChalkRendering", "ChalkLineEffects", "LiveTextEffects"],
+      path: "Tests/LiveTextChalkRenderingTests"
+    ),
   ]
+#endif
+
+#if os(macOS)
+  products.append(.executable(name: "LiveTextDemo", targets: ["LiveTextDemo"]))
+  targets.append(.executableTarget(
+    name: "LiveTextDemo",
+    dependencies: ["ChalkLineEffects", "LiveTextChalkRendering", "LiveTextEffects", "LiveTextApple", "LiveTextWritingUI"],
+    path: "Examples/LiveTextDemo"
+  ))
 #endif
 
 let package = Package(

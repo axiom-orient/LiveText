@@ -1,4 +1,6 @@
 import Foundation
+import LiveTextChalkRendering
+import LiveTextEffects
 
 /// Ensures that the timeline addresses exactly the semantic stroke storage
 /// carried by the scene. `WritingTimeline` remains responsible for validating
@@ -35,9 +37,47 @@ func validateChalkWritingTimelineOwnership(
 /// of silently falling back to a different glyph source.
 final class ChalkWritingPreparationCache: @unchecked Sendable {
   let renderPlan: ChalkWritingRenderPlan
+  // Path storage is immutable. The only mutable derivative is protected by
+  // this lock and retains at most one material/width result per preparation.
+  private let contactLock = NSLock()
+  private var contactEntry: ContactEntry?
+
+  private struct ContactEntry {
+    let configuration: WritingChalkConfiguration
+    let lineWidthMultiplier: Double
+    let result: Result<ChalkPreparedContactPlan?, Error>
+  }
 
   init(scene: StrokeWritingScene, timeline: WritingTimeline) throws {
     renderPlan = try ChalkWritingRenderPlan(scene: scene, timeline: timeline)
+  }
+
+  func contactPlan(style: ChalkWritingStyle) throws -> ChalkPreparedContactPlan? {
+    contactLock.lock()
+    defer { contactLock.unlock() }
+    if let entry = contactEntry,
+      entry.configuration == style.configuration,
+      entry.lineWidthMultiplier == style.lineWidthMultiplier {
+      return try entry.result.get()
+    }
+    let result = Result { try makeContactPlan(style: style) }
+    contactEntry = ContactEntry(
+      configuration: style.configuration, lineWidthMultiplier: style.lineWidthMultiplier, result: result)
+    return try result.get()
+  }
+
+  private func makeContactPlan(style: ChalkWritingStyle) throws -> ChalkPreparedContactPlan? {
+    let configuration = style.configuration
+    if configuration.grainAmount == 0, configuration.erosionAmount == 0,
+      configuration.edgeRoughness == 0 { return nil }
+    let material = ChalkRenderMaterial.liveText(configuration)
+    guard material.executionTopology(for: .strokeGeometry) == .contactDabs else { return nil }
+    let strokes = renderPlan.strokes.map { stroke in
+      ChalkRenderStrokeGeometry(id: stroke.timing.strokeID, points: stroke.points.map {
+        ChalkRenderStrokePoint(x: $0.x, y: $0.y, width: $0.width * style.lineWidthMultiplier)
+      })
+    }
+    return try ChalkPreparedContactPlan.prepare(strokes: strokes, material: material)
   }
 }
 

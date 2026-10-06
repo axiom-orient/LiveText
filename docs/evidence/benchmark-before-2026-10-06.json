@@ -1,0 +1,98 @@
+{
+  "limitation" : "CPU\/offscreen raster timing, not device display FPS or dropped frames.",
+  "measurement" : "Synchronous SwiftUI ImageRenderer plus bitmap data materialization; no PNG encoding or disk I\/O in timed regions.",
+  "workloads" : [
+    {
+      "checksum" : 182784000,
+      "height" : 240,
+      "rasterMS" : {
+        "max" : 8.1923340000000007,
+        "median" : 3.5942500000000002,
+        "p95" : 5.3980420000000002
+      },
+      "samples" : 60,
+      "scale" : 2,
+      "semanticPreparationMS" : 14.882667,
+      "strokeCount" : 37,
+      "style" : "dryBrush",
+      "text" : "한글 ABC 곡선 OQ89",
+      "viewConstructionMS" : {
+        "max" : 0.263625,
+        "median" : 0.16145799999999999,
+        "p95" : 0.21795900000000001
+      },
+      "warmup" : 10,
+      "width" : 680,
+      "workload" : "normal"
+    },
+    {
+      "checksum" : 182784000,
+      "height" : 240,
+      "rasterMS" : {
+        "max" : 3.8741660000000002,
+        "median" : 2.020041,
+        "p95" : 3.151125
+      },
+      "samples" : 60,
+      "scale" : 2,
+      "semanticPreparationMS" : 1.758375,
+      "strokeCount" : 37,
+      "style" : "fineLine",
+      "text" : "한글 ABC 곡선 OQ89",
+      "viewConstructionMS" : {
+        "max" : 0.29970799999999997,
+        "median" : 0.20999999999999999,
+        "p95" : 0.22570799999999999
+      },
+      "warmup" : 10,
+      "width" : 680,
+      "workload" : "normal"
+    },
+    {
+      "checksum" : 182784000,
+      "height" : 240,
+      "rasterMS" : {
+        "max" : 32.274040999999997,
+        "median" : 16.678083000000001,
+        "p95" : 30.728166000000002
+      },
+      "samples" : 60,
+      "scale" : 2,
+      "semanticPreparationMS" : 4.5452919999999999,
+      "strokeCount" : 222,
+      "style" : "dryBrush",
+      "text" : "한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n",
+      "viewConstructionMS" : {
+        "max" : 1.1867080000000001,
+        "median" : 0.98187500000000005,
+        "p95" : 1.096708
+      },
+      "warmup" : 10,
+      "width" : 680,
+      "workload" : "paragraph"
+    },
+    {
+      "checksum" : 182784000,
+      "height" : 240,
+      "rasterMS" : {
+        "max" : 19.534458000000001,
+        "median" : 9.032375,
+        "p95" : 15.92375
+      },
+      "samples" : 60,
+      "scale" : 2,
+      "semanticPreparationMS" : 4.3305410000000002,
+      "strokeCount" : 222,
+      "style" : "fineLine",
+      "text" : "한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n한글 ABC 곡선 OQ89\n",
+      "viewConstructionMS" : {
+        "max" : 1.5117499999999999,
+        "median" : 1.3278749999999999,
+        "p95" : 1.4165829999999999
+      },
+      "warmup" : 10,
+      "width" : 680,
+      "workload" : "paragraph"
+    }
+  ]
+}

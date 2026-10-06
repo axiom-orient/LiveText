@@ -1,7 +1,5 @@
-import CoreGraphics
 import Foundation
 import LiveTextEffects
-import SwiftUI
 
 package struct ChalkRenderStrokePoint: Hashable, Sendable {
   package let x: Double
@@ -37,17 +35,36 @@ package enum ChalkRenderError: Error, Equatable, Sendable {
   case resourceLimitExceeded(resource: String, actual: Int, limit: Int)
 }
 
-private enum ChalkBoardInteraction: Sendable {
-  case perContact(maximumLoss: Double)
-  case postComposite(loss: Double)
+/// Numerical/resource constants, not user settings or frame state.
+enum ChalkContactPolicy {
+  static let maximumDabsPerStroke = 8_192
+  static let tipVariantCount = 4
+  static let minimumSpacing = 0.22
+  static let minimumWidth = 0.35
+  static let minimumDustRadius = 0.10
+  static let dustSeedSalt: UInt64 = 0x4455_5354_504C_414E
+  static let boardSeedSalt: UInt64 = 0x424F_4152_4454_4F4F
+  static let scatterMemory = 0.82
+  static let radiusMemory = 0.86
+  static let depositionMemory = 0.80
+  static let endpointContactLengths = 1.5
+  static let minimumEndpointAdhesion = 0.68
 }
 
-private struct ChalkBrushProfile: Sendable {
-  let tipResourcePrefix: String
-  let tipVariantCount: Int
+/// A stroke receives board tooth here OR after composition, never both.
+enum ChalkBoardInteraction: Sendable {
+  case perContact(maximumLoss: Double)
+  case postComposite(maximumLoss: Double)
+}
+
+struct ChalkBrushProfile: Sendable {
+  // Keep the previously accepted path-length budget independent of the
+  // denser material sampling used for fineLine.
+  let admissionSpacingRadiusFraction: Double
   let spacingRadiusFraction: Double
   let axialAspect: Double
   let transverseScale: Double
+  let overlapCoverage: Double
   let finalOpacity: Double
   let pressureGamma: Double
   let boardInteraction: ChalkBoardInteraction
@@ -77,28 +94,34 @@ private struct ChalkBrushProfile: Sendable {
     return min(0.92, max(0, maximumLoss * pressureExposure * textureStrength * erosionStrength))
   }
 
-  var postCompositeToothLoss: Double {
-    guard case .postComposite(let loss) = boardInteraction else { return 0 }
-    return min(1, max(0, loss))
+  func postCompositeToothLoss(configuration: WritingChalkConfiguration) -> Double {
+    guard case .postComposite(let maximumLoss) = boardInteraction else { return 0 }
+    // Keep a legible pigment core. Grain and erosion change coverage, not RGB.
+    let exposure = 0.65 * configuration.grainAmount + 0.35 * configuration.erosionAmount
+    return min(1, max(0, maximumLoss * exposure))
   }
 }
 
 extension ChalkRenderStyle {
-  fileprivate var contactBrushProfile: ChalkBrushProfile? {
+  var contactBrushProfile: ChalkBrushProfile? {
     switch self {
     case .fineLine:
       return ChalkBrushProfile(
-        tipResourcePrefix: "chalk-tip-fine-line", tipVariantCount: 4,
-        spacingRadiusFraction: 0.78, axialAspect: 1.28, transverseScale: 1.12,
+        admissionSpacingRadiusFraction: 0.78,
+        spacingRadiusFraction: 0.55, axialAspect: 1.28, transverseScale: 1.12,
+        overlapCoverage: 1,
         finalOpacity: 0.998, pressureGamma: 0.90,
-        boardInteraction: .postComposite(loss: 0.28),
+        boardInteraction: .postComposite(maximumLoss: 0.48),
         scatterNormalFraction: 0.055, directionResponse: 0.54,
         radiusJitter: 0.11, depositionJitter: 0.20, microJitter: 0.045,
         dustRate: 0.22, dustOpacity: 0.42, dustSpread: 0.68, dustRadiusScale: 1.65)
     case .dryBrush:
       return ChalkBrushProfile(
-        tipResourcePrefix: "chalk-tip-dry-brush", tipVariantCount: 4,
+        admissionSpacingRadiusFraction: 0.96,
         spacingRadiusFraction: 0.96, axialAspect: 2.40, transverseScale: 1.78,
+        // The four bundled dry tips occupy ~28% of their alpha rectangles.
+        // Counting every empty brush slot as pigment made the field too faint.
+        overlapCoverage: 0.28,
         finalOpacity: 0.94, pressureGamma: 1.02,
         boardInteraction: .perContact(maximumLoss: 0.62),
         scatterNormalFraction: 0.250, directionResponse: 0.38,
@@ -110,7 +133,7 @@ extension ChalkRenderStyle {
   }
 }
 
-private struct ChalkBrushDab: Hashable, Sendable {
+struct ChalkBrushDab: Hashable, Sendable {
   let centerX: Double
   let centerY: Double
   let angle: Double
@@ -123,28 +146,46 @@ private struct ChalkBrushDab: Hashable, Sendable {
   let mirrorX: Bool
 }
 
-private struct ChalkDustParticle: Hashable, Sendable {
+struct ChalkDustParticle: Hashable, Sendable {
   let centerX: Double
   let centerY: Double
   let radius: Double
+  let angle: Double
   let opacity: Double
   let arcFraction: Double
+  let variant: Int
 }
 
-private struct ChalkContactSupportPlan: Hashable, Sendable {
+struct ChalkContactSupportPlan: Hashable, Sendable {
   let boardImageScale: Double
   let boardPhaseX: Double
   let boardPhaseY: Double
   let postCompositeToothLoss: Double
+  let substrateImageScale: Double
+  let substratePhaseX: Double
+  let substratePhaseY: Double
+  let substrateLoss: Double
 }
 
-private struct ChalkBrushStrokePlan: Hashable, Sendable {
+struct ChalkBrushStrokePlan: Hashable, Sendable {
   let strokeID: String
   let dabs: [ChalkBrushDab]
   let dust: [ChalkDustParticle]
 
   func dabs(for visibility: ChalkContactVisibility) -> ArraySlice<ChalkBrushDab> {
-    visible(dabs, visibility: visibility, fraction: \.arcFraction)
+    // A semantic dot is visible throughout its active interval, matching
+    // the exact-path adapter. It is not an arc-length sample at either end.
+    if dabs.count == 1 {
+      switch visibility {
+      case .hidden: return dabs[0..<0]
+      case .full: return dabs[...]
+      case .prefix(let value):
+        return value.isFinite && value > 0 ? dabs[...] : dabs[0..<0]
+      case .suffix(let value):
+        return value.isFinite && value < 1 ? dabs[...] : dabs[0..<0]
+      }
+    }
+    return visible(dabs, visibility: visibility, fraction: \.arcFraction)
   }
 
   func dust(for visibility: ChalkContactVisibility) -> ArraySlice<ChalkDustParticle> {
@@ -161,19 +202,21 @@ private struct ChalkBrushStrokePlan: Hashable, Sendable {
       return elements[0..<0]
     case .full:
       return elements[...]
-    case .prefix(let value):
-      let limit = min(1, max(0, value))
+    case .prefix(let limit):
+      guard limit.isFinite, limit > 0 else { return elements[0..<0] }
+      guard limit < 1 else { return elements[...] }
       var low = 0, high = elements.count
       while low < high {
-        let middle = (low + high) / 2
+        let middle = low + (high - low) / 2
         if elements[middle][keyPath: fraction] <= limit { low = middle + 1 } else { high = middle }
       }
       return elements[..<low]
-    case .suffix(let value):
-      let limit = min(1, max(0, value))
+    case .suffix(let limit):
+      guard limit.isFinite, limit < 1 else { return elements[0..<0] }
+      guard limit > 0 else { return elements[...] }
       var low = 0, high = elements.count
       while low < high {
-        let middle = (low + high) / 2
+        let middle = low + (high - low) / 2
         if elements[middle][keyPath: fraction] < limit { low = middle + 1 } else { high = middle }
       }
       return elements[low...]
@@ -181,12 +224,13 @@ private struct ChalkBrushStrokePlan: Hashable, Sendable {
   }
 }
 
+/// Immutable preparation output. The renderer has no random or planning state.
 package struct ChalkPreparedContactPlan: Sendable {
-  package static let maximumDabsPerStroke = 8_192
+  package static let maximumDabsPerStroke = ChalkContactPolicy.maximumDabsPerStroke
 
-  fileprivate let material: ChalkRenderMaterial
-  fileprivate let support: ChalkContactSupportPlan
-  fileprivate let strokes: [ChalkBrushStrokePlan]
+  let material: ChalkRenderMaterial
+  let support: ChalkContactSupportPlan
+  let strokes: [ChalkBrushStrokePlan]
 
   package static func prepare(
     strokes: [ChalkRenderStrokeGeometry],
@@ -197,233 +241,194 @@ package struct ChalkPreparedContactPlan: Sendable {
     else {
       throw ChalkRenderError.invalidStroke("material does not support contact geometry")
     }
-    let boardImageScale = profile.boardImageScale(grainScale: material.configuration.grainScale)
-    let boardTileSize = ChalkSurfacePlanner.texturePixelSize * boardImageScale
+    let imageScale = profile.boardImageScale(grainScale: material.configuration.grainScale)
     let phase = ChalkSurfacePlanner.texturePhase(
       seed: material.configuration.seed,
-      tileSize: boardTileSize,
-      salt: 0x424F_4152_4454_4F4F)
-    let support = ChalkContactSupportPlan(
-      boardImageScale: boardImageScale,
-      boardPhaseX: phase.x, boardPhaseY: phase.y,
-      postCompositeToothLoss: profile.postCompositeToothLoss)
+      tileSize: ChalkSurfacePlanner.texturePixelSize * imageScale,
+      salt: ChalkContactPolicy.boardSeedSalt)
+    let surface = WritingChalkSurfacePlan(configuration: material.configuration)
+    let substratePhase = surface.phase(tileSize: surface.detailTexturePointSize, pass: .face)
     return ChalkPreparedContactPlan(
       material: material,
-      support: support,
-      strokes: try strokes.enumerated().map { index, stroke in
-        try plan(stroke: stroke, material: material, profile: profile, strokeIndex: index)
-      })
+      support: ChalkContactSupportPlan(
+        boardImageScale: imageScale, boardPhaseX: phase.x, boardPhaseY: phase.y,
+        postCompositeToothLoss: profile.postCompositeToothLoss(configuration: material.configuration),
+        substrateImageScale: surface.detailTexturePointSize / Double(WritingChalkTextureResource.pixelDimension),
+        substratePhaseX: substratePhase.x, substratePhaseY: substratePhase.y,
+        substrateLoss: surface.detailGrainCutoutOpacity),
+      strokes: try strokes.map { try plan(stroke: $0, material: material, profile: profile) })
   }
 
   private static func plan(
     stroke: ChalkRenderStrokeGeometry,
     material: ChalkRenderMaterial,
-    profile: ChalkBrushProfile,
-    strokeIndex: Int
+    profile: ChalkBrushProfile
   ) throws -> ChalkBrushStrokePlan {
-    guard !stroke.id.isEmpty, !stroke.points.isEmpty,
-      stroke.points.allSatisfy({ $0.x.isFinite && $0.y.isFinite && $0.width.isFinite && $0.width > 0 })
-    else { throw ChalkRenderError.invalidStroke(stroke.id) }
+    guard !stroke.id.isEmpty, !stroke.points.isEmpty else {
+      throw ChalkRenderError.invalidStroke(stroke.id)
+    }
+    var points: [ChalkRenderStrokePoint] = []
+    // Consecutive coincident samples have no travel; the latest pressure wins.
+    for point in stroke.points {
+      guard point.x.isFinite, point.y.isFinite, point.width.isFinite, point.width > 0 else {
+        throw ChalkRenderError.invalidStroke(stroke.id)
+      }
+      if let previous = points.last, previous.x == point.x, previous.y == point.y {
+        points[points.count - 1] = point
+      } else {
+        points.append(point)
+      }
+    }
+    let seed = ChalkStableHash.value(seed: material.configuration.seed, string: stroke.id)
+    var random = ChalkSplitMix64(state: seed)
+    var dustRandom = ChalkSplitMix64(state: seed ^ ChalkContactPolicy.dustSeedSalt)
+    let variant = Int(random.nextUInt64() % UInt64(ChalkContactPolicy.tipVariantCount))
+    let mirror = (random.nextUInt64() & 1) == 1
+    let tipSkew = random.nextSignedUnit() * 0.075
 
-    if stroke.points.count == 1 {
-      let point = stroke.points[0]
-      let radius = max(0.25, point.width * 0.5)
+    guard points.count > 1 else {
+      let point = points[0]
+      let height = max(0.5, point.width) * profile.transverseScale
+      let width = height * profile.axialAspect
+      guard height.isFinite, width.isFinite else { throw ChalkRenderError.invalidStroke(stroke.id) }
       return ChalkBrushStrokePlan(
         strokeID: stroke.id,
         dabs: [ChalkBrushDab(
-          centerX: point.x, centerY: point.y, angle: 0,
-          width: radius * 2 * profile.transverseScale * profile.axialAspect,
-          height: radius * 2 * profile.transverseScale,
-          opacity: profile.finalOpacity,
+          centerX: point.x, centerY: point.y, angle: tipSkew,
+          width: width, height: height, opacity: profile.finalOpacity,
           toothLoss: profile.contactToothLoss(
             configuration: material.configuration, normalizedPressure: 0.5),
-          arcFraction: 1, variant: 0, mirrorX: false)],
+          arcFraction: 1, variant: variant, mirrorX: mirror)],
         dust: [])
     }
 
-    var cumulative = [Double](repeating: 0, count: stroke.points.count)
-    for index in 1..<stroke.points.count {
-      let a = stroke.points[index - 1], b = stroke.points[index]
-      cumulative[index] = cumulative[index - 1] + hypot(b.x - a.x, b.y - a.y)
+    var cumulative = [Double](repeating: 0, count: points.count)
+    var meanWidth = 0.0
+    for index in 1..<points.count {
+      let a = points[index - 1], b = points[index]
+      let length = hypot(b.x - a.x, b.y - a.y)
+      let total = cumulative[index - 1] + length
+      guard length.isFinite, length > 0, total.isFinite, total > cumulative[index - 1] else {
+        throw ChalkRenderError.invalidStroke(stroke.id)
+      }
+      cumulative[index] = total
+      let weight = length / total
+      let segmentWidth = a.width * 0.5 + b.width * 0.5
+      meanWidth = meanWidth * (1 - weight) + segmentWidth * weight
     }
-    guard let finalDistance = cumulative.last, finalDistance > 0 else {
-      return ChalkBrushStrokePlan(strokeID: stroke.id, dabs: [], dust: [])
+    let finalDistance = cumulative[cumulative.count - 1]
+    guard meanWidth.isFinite, meanWidth > 0 else { throw ChalkRenderError.invalidStroke(stroke.id) }
+    // Admission uses the original point-mean width and original spacing.
+    // Check the floating-point estimate before converting it to an integer.
+    let pointMeanWidth = stroke.points.reduce(0.0) { $0 + $1.width / Double(stroke.points.count) }
+    guard pointMeanWidth.isFinite, pointMeanWidth > 0 else {
+      throw ChalkRenderError.invalidStroke(stroke.id)
     }
-
-    let meanWidth = stroke.points.reduce(0.0) { $0 + $1.width } / Double(stroke.points.count)
-    var spacing = max(0.22, meanWidth * 0.5 * profile.spacingRadiusFraction)
-    let estimatedCount = Int(ceil(finalDistance / spacing)) + 1
-    guard estimatedCount <= maximumDabsPerStroke else {
+    let admissionSpacing = max(ChalkContactPolicy.minimumSpacing,
+      pointMeanWidth * 0.5 * profile.admissionSpacingRadiusFraction)
+    let maximumIntervals = maximumDabsPerStroke - 1
+    let admittedIntervals = ceil(finalDistance / admissionSpacing)
+    guard admittedIntervals.isFinite, admittedIntervals <= Double(maximumIntervals) else {
       throw ChalkRenderError.resourceLimitExceeded(
-        resource: "chalk contact dabs", actual: estimatedCount, limit: maximumDabsPerStroke)
+        resource: "chalk contact dabs", actual: maximumDabsPerStroke + 1, limit: maximumDabsPerStroke)
     }
-    let count = max(2, estimatedCount)
-    spacing = finalDistance / Double(count - 1)
-    let overlap = max(1.0, (meanWidth * profile.transverseScale * profile.axialAspect) / max(spacing, 0.001))
-    let linearizedOpacity = 1 - pow(1 - profile.finalOpacity, 1 / overlap)
-
-    let baseSeed = ChalkStableHash.value(
-      seed: material.configuration.seed ^ UInt64(strokeIndex), string: stroke.id)
-    var random = ChalkSplitMix64(state: baseSeed)
-    let baseVariant = Int(random.nextUInt64() % UInt64(profile.tipVariantCount))
-    let baseMirror = (random.nextUInt64() & 1) == 1
-    let tipSkew = random.nextSignedUnit() * 0.075
+    // Use one bounded, uniform arc grid. Denser pigment deposition consumes
+    // the available budget rather than rejecting an historically valid path.
+    let desiredSpacing = max(ChalkContactPolicy.minimumSpacing,
+      meanWidth * 0.5 * profile.spacingRadiusFraction)
+    let intervals = Int(min(Double(maximumIntervals), max(1, ceil(finalDistance / desiredSpacing))))
+    let spacing = finalDistance / Double(intervals)
     var dabs: [ChalkBrushDab] = []
+    dabs.reserveCapacity(intervals + 1)
     var dust: [ChalkDustParticle] = []
-    dabs.reserveCapacity(count)
-
     var sampleIndex = 1
     var filteredAngle: Double?
     var filteredScatter = 0.0
     var filteredRadiusNoise = 0.0
     var filteredDepositionNoise = 0.0
 
-    for dabIndex in 0..<count {
-      let distance = min(finalDistance, Double(dabIndex) * spacing)
-      while sampleIndex < cumulative.count - 1, cumulative[sampleIndex] < distance { sampleIndex += 1 }
-      let previousIndex = max(0, sampleIndex - 1)
-      let nextIndex = min(stroke.points.count - 1, sampleIndex)
-      let previous = stroke.points[previousIndex], next = stroke.points[nextIndex]
-      let span = cumulative[nextIndex] - cumulative[previousIndex]
-      let local = span > 0 ? (distance - cumulative[previousIndex]) / span : 0
-      let x = previous.x + (next.x - previous.x) * local
-      let y = previous.y + (next.y - previous.y) * local
-      let sourceWidth = previous.width + (next.width - previous.width) * local
-      let pressureWidth = max(0.35, pow(max(0.05, sourceWidth), profile.pressureGamma))
-      let relativePressure = min(1.30, max(0.55, sourceWidth / max(meanWidth, 0.001)))
-      let normalizedPressure = min(1, max(0, (relativePressure - 0.55) / 0.75))
-      let pressureAdhesion = 0.62 + 0.38 * normalizedPressure
-      let toothLoss = profile.contactToothLoss(
-        configuration: material.configuration, normalizedPressure: normalizedPressure)
-
-      let dx = next.x - previous.x, dy = next.y - previous.y
-      let rawAngle = atan2(dy, dx) + tipSkew
+    for dabIndex in 0...intervals {
+      let distance = dabIndex == intervals ? finalDistance
+        : finalDistance * (Double(dabIndex) / Double(intervals))
+      while sampleIndex < points.count - 1, cumulative[sampleIndex] < distance { sampleIndex += 1 }
+      let previous = points[sampleIndex - 1], next = points[sampleIndex]
+      let span = cumulative[sampleIndex] - cumulative[sampleIndex - 1]
+      let local = min(1, max(0, (distance - cumulative[sampleIndex - 1]) / span))
+      let x = previous.x * (1 - local) + next.x * local
+      let y = previous.y * (1 - local) + next.y * local
+      let sourceWidth = previous.width * (1 - local) + next.width * local
+      // Apply pressure to a dimensionless ratio, not to a width measured in pt.
+      let relativeWidth = sourceWidth / meanWidth
+      let pressureWidth = max(ChalkContactPolicy.minimumWidth, meanWidth * pow(relativeWidth, profile.pressureGamma))
+      let relativePressure = min(1.30, max(0.55, relativeWidth))
+      let pressure = min(1, max(0, (relativePressure - 0.55) / 0.75))
+      guard x.isFinite, y.isFinite, pressureWidth.isFinite else {
+        throw ChalkRenderError.invalidStroke(stroke.id)
+      }
+      let rawAngle = atan2(next.y - previous.y, next.x - previous.x) + tipSkew
       let angle: Double
       if let current = filteredAngle {
-        var delta = rawAngle - current
-        while delta > .pi { delta -= 2 * .pi }
-        while delta < -.pi { delta += 2 * .pi }
-        angle = current + delta * min(1, max(0.05, profile.directionResponse))
+        let delta = atan2(sin(rawAngle - current), cos(rawAngle - current))
+        angle = current + delta * profile.directionResponse
       } else {
         angle = rawAngle
       }
       filteredAngle = angle
-      filteredScatter = filteredScatter * 0.82 + random.nextSignedUnit() * 0.18
-      filteredRadiusNoise = filteredRadiusNoise * 0.86 + random.nextSignedUnit() * 0.14
-      filteredDepositionNoise = filteredDepositionNoise * 0.80 + random.nextSignedUnit() * 0.20
+      filteredScatter = filteredScatter * ChalkContactPolicy.scatterMemory
+        + random.nextSignedUnit() * (1 - ChalkContactPolicy.scatterMemory)
+      filteredRadiusNoise = filteredRadiusNoise * ChalkContactPolicy.radiusMemory
+        + random.nextSignedUnit() * (1 - ChalkContactPolicy.radiusMemory)
+      filteredDepositionNoise = filteredDepositionNoise * ChalkContactPolicy.depositionMemory
+        + random.nextSignedUnit() * (1 - ChalkContactPolicy.depositionMemory)
       let normalX = -sin(angle), normalY = cos(angle)
       let scatter = pressureWidth * (
         profile.scatterNormalFraction * filteredScatter + profile.microJitter * random.nextSignedUnit())
-      let radiusScale = max(0.62, 1 + profile.radiusJitter * filteredRadiusNoise + profile.microJitter * 0.75 * random.nextSignedUnit())
-      let depositionScale = max(0.18, 1 - profile.depositionJitter * 0.5 + profile.depositionJitter * 0.5 * filteredDepositionNoise)
-      let contactHeight = pressureWidth * profile.transverseScale * radiusScale
-      let fraction = finalDistance > 0 ? distance / finalDistance : 1
-      let endEnvelope = 0.66 + 0.34 * sin(.pi * fraction)
+      let radiusScale = max(0.62, 1 + profile.radiusJitter * filteredRadiusNoise
+        + profile.microJitter * 0.75 * random.nextSignedUnit())
+      let depositionScale = max(0.18, 1 - profile.depositionJitter * 0.5
+        + profile.depositionJitter * 0.5 * filteredDepositionNoise)
+      let height = pressureWidth * profile.transverseScale * radiusScale
+      let width = height * profile.axialAspect
+      let overlap = max(1, width * profile.overlapCoverage / spacing)
+      let rampLength = max(1, meanWidth * ChalkContactPolicy.endpointContactLengths)
+      let edgeDistance = min(distance, finalDistance - distance)
+      let t = min(1, max(0, edgeDistance / rampLength))
+      let smooth = t * t * (3 - 2 * t)
+      let envelope = ChalkContactPolicy.minimumEndpointAdhesion
+        + (1 - ChalkContactPolicy.minimumEndpointAdhesion) * smooth
+      let adhesion = (0.62 + 0.38 * pressure) * depositionScale * envelope
+      // Coverage is composited multiplicatively: density/overlap is the
+      // quantity to modulate, rather than multiplying already-linear alpha.
+      let opacity = 1 - pow(1 - profile.finalOpacity, adhesion / overlap)
+      let fraction = distance / finalDistance
+      let centerX = x + normalX * scatter, centerY = y + normalY * scatter
+      guard centerX.isFinite, centerY.isFinite, width.isFinite, height.isFinite,
+        opacity.isFinite, width > 0, height > 0
+      else { throw ChalkRenderError.invalidStroke(stroke.id) }
       dabs.append(ChalkBrushDab(
-        centerX: x + normalX * scatter, centerY: y + normalY * scatter,
-        angle: angle, width: contactHeight * profile.axialAspect, height: contactHeight,
-        opacity: min(1, max(0.01, linearizedOpacity * endEnvelope * pressureAdhesion * depositionScale)),
-        toothLoss: toothLoss, arcFraction: fraction,
-        variant: baseVariant, mirrorX: baseMirror))
+        centerX: centerX, centerY: centerY, angle: angle,
+        width: width, height: height, opacity: opacity,
+        toothLoss: profile.contactToothLoss(configuration: material.configuration, normalizedPressure: pressure),
+        arcFraction: fraction, variant: variant, mirrorX: mirror))
 
-      if random.nextUnit() < profile.dustRate {
-        let side: Double = random.nextUnit() < 0.5 ? -1 : 1
-        let spread = pressureWidth * profile.dustSpread * (0.48 + random.nextUnit() * 0.62)
-        let along = pressureWidth * random.nextSignedUnit() * 0.36
+      if material.configuration.edgeRoughness > 0, dustRandom.nextUnit() < profile.dustRate {
+        let side: Double = dustRandom.nextUnit() < 0.5 ? -1 : 1
+        let spread = pressureWidth * profile.dustSpread * (0.48 + dustRandom.nextUnit() * 0.62)
+        let along = pressureWidth * dustRandom.nextSignedUnit() * 0.36
+        let dustX = x + cos(angle) * along + normalX * spread * side
+        let dustY = y + sin(angle) * along + normalY * spread * side
+        let radius = max(ChalkContactPolicy.minimumDustRadius,
+          pressureWidth * profile.dustRadiusScale * (0.015 + dustRandom.nextUnit() * 0.045))
+        guard dustX.isFinite, dustY.isFinite, radius.isFinite else {
+          throw ChalkRenderError.invalidStroke(stroke.id)
+        }
         dust.append(ChalkDustParticle(
-          centerX: x + cos(angle) * along + normalX * spread * side,
-          centerY: y + sin(angle) * along + normalY * spread * side,
-          radius: max(0.16, pressureWidth * profile.dustRadiusScale * (0.015 + random.nextUnit() * 0.045)),
-          opacity: profile.dustOpacity * (0.55 + random.nextUnit() * 0.45),
-          arcFraction: fraction))
+          centerX: dustX, centerY: dustY, radius: radius, angle: angle,
+          opacity: profile.dustOpacity * (0.55 + dustRandom.nextUnit() * 0.45),
+          arcFraction: fraction,
+          variant: Int(dustRandom.nextUInt64() % UInt64(ChalkContactPolicy.tipVariantCount))))
       }
     }
     return ChalkBrushStrokePlan(strokeID: stroke.id, dabs: dabs, dust: dust)
-  }
-}
-
-package enum ChalkContactRenderer {
-  package static func paint(
-    plan: ChalkPreparedContactPlan,
-    visibility: [ChalkContactVisibility],
-    color: Color,
-    documentOriginAtContextZero: CGPoint,
-    clipBounds: CGRect,
-    in context: inout GraphicsContext
-  ) {
-    guard visibility.count == plan.strokes.count,
-      clipBounds.width.isFinite, clipBounds.height.isFinite
-    else { return }
-
-    let profile = plan.material.style.contactBrushProfile!
-    let resolvedTips = (0..<profile.tipVariantCount).map {
-      context.resolve(ChalkRenderResources.tipImage(style: plan.material.style, variant: $0))
-    }
-    let support = plan.support
-    let localBoardOrigin = CGPoint(
-      x: CGFloat(support.boardPhaseX) - documentOriginAtContextZero.x,
-      y: CGFloat(support.boardPhaseY) - documentOriginAtContextZero.y)
-
-    context.drawLayer { pigment in
-      for (index, stroke) in plan.strokes.enumerated() {
-        for dab in stroke.dabs(for: visibility[index]) {
-          pigment.drawLayer { contact in
-            var resolved = resolvedTips[dab.variant]
-            resolved.shading = .color(color)
-            var local = contact
-            local.opacity = min(1, dab.opacity * (0.64 + 0.36 * plan.material.configuration.grainAmount))
-            local.translateBy(x: CGFloat(dab.centerX), y: CGFloat(dab.centerY))
-            local.rotate(by: .radians(dab.angle))
-            if dab.mirrorX { local.scaleBy(x: -1, y: 1) }
-            local.draw(
-              resolved,
-              in: CGRect(
-                x: CGFloat(-dab.width * 0.5), y: CGFloat(-dab.height * 0.5),
-                width: CGFloat(dab.width), height: CGFloat(dab.height)
-              )
-            )
-            if dab.toothLoss > 0 {
-              contact.blendMode = .destinationOut
-              contact.opacity = min(1, max(0, dab.toothLoss))
-              contact.fill(
-                Path(clipBounds),
-                with: .tiledImage(
-                  ChalkRenderResources.boardToothImage,
-                  origin: localBoardOrigin,
-                  sourceRect: CGRect(x: 0, y: 0, width: 1, height: 1),
-                  scale: CGFloat(support.boardImageScale)))
-            }
-          }
-        }
-      }
-      if support.postCompositeToothLoss > 0 {
-        var boardLoss = pigment
-        boardLoss.blendMode = .destinationOut
-        boardLoss.opacity = support.postCompositeToothLoss
-        boardLoss.fill(
-          Path(clipBounds),
-          with: .tiledImage(
-            ChalkRenderResources.boardToothImage,
-            origin: localBoardOrigin,
-            sourceRect: CGRect(x: 0, y: 0, width: 1, height: 1),
-            scale: CGFloat(support.boardImageScale)))
-        pigment = boardLoss
-      }
-    }
-
-    let dustStrength = plan.material.configuration.edgeRoughness
-    guard dustStrength > 0 else { return }
-    for (index, stroke) in plan.strokes.enumerated() {
-      for particle in stroke.dust(for: visibility[index]) {
-        let radius = CGFloat(max(0.35, particle.radius))
-        var dust = context
-        dust.opacity = min(0.34, particle.opacity * dustStrength)
-        dust.fill(
-          Path(ellipseIn: CGRect(
-            x: CGFloat(particle.centerX) - radius, y: CGFloat(particle.centerY) - radius,
-            width: radius * 2, height: radius * 2)),
-          with: .color(color))
-      }
-    }
   }
 }

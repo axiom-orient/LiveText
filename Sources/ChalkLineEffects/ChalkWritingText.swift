@@ -4,24 +4,28 @@ import SwiftUI
 
 extension ChalkWritingRenderPlan.Stroke: ChalkWritingTimedStroke {}
 
-/// A SwiftUI view that reveals the semantic Latin/Hangul stroke catalog over
-/// the prepared timeline. The catalog describes a consistent teaching profile;
-/// it is not a claim about any particular author's original pen trajectory.
+/// Reveals the semantic Latin/Hangul catalog over its prepared timeline.
+/// The catalog is a teaching profile, not an author's original pen trajectory.
 public struct ChalkWritingText: View {
-  private let preparation: ChalkWritingPreparation?
-  private let renderPlan: ChalkWritingRenderPlan?
-  private let contactPlan: ChalkPreparedContactPlan?
-  private let playbackIdentity: ChalkWritingPlaybackIdentity?
-  private let failureDescription: String?
+  /// A view cannot simultaneously contain a partial plan and a failure.
+  private enum PreparedState {
+    case ready(
+      plan: ChalkWritingRenderPlan,
+      contactPlan: ChalkPreparedContactPlan?,
+      identity: ChalkWritingPlaybackIdentity
+    )
+    case failed(String)
+  }
+
+  private let state: PreparedState
   private let style: ChalkWritingStyle
   private let animation: ChalkWritingAnimation
   private let motion: ChalkWritingMotionStyle
   private let fixedProgress: Double?
   private let onCompletion: (() -> Void)?
 
-  /// Creates a self-contained writing view. Invalid or unsupported text is
-  /// rendered as an accessible error view. Call `ChalkWritingPreparation`
-  /// directly when the caller needs a throwing preparation API instead.
+  /// Invalid input or material preparation failure becomes an accessible error
+  /// view. Use `ChalkWritingPreparation` for throwing semantic preparation.
   public init(
     _ text: String,
     layout: WritingLayoutOptions = .default,
@@ -33,48 +37,10 @@ public struct ChalkWritingText: View {
     progress: Double? = nil,
     onCompletion: (() -> Void)? = nil
   ) {
-    self.style = style
-    self.animation = animation
-    self.motion = motion
-    self.onCompletion = onCompletion
-    var resolvedPreparation: ChalkWritingPreparation?
-    var resolvedRenderPlan: ChalkWritingRenderPlan?
-    var resolvedContactPlan: ChalkPreparedContactPlan?
-    var resolvedPlaybackIdentity: ChalkWritingPlaybackIdentity?
-    var resolvedFailureDescription: String?
-    if let progress, !progress.isFinite || !(0...1).contains(progress) {
-      resolvedPreparation = nil
-      resolvedRenderPlan = nil
-      resolvedContactPlan = nil
-      resolvedPlaybackIdentity = nil
-      resolvedFailureDescription = ChalkLineEffectsError.invalidProgress(progress).localizedDescription
-      fixedProgress = nil
-    } else {
-      fixedProgress = progress
-      do {
-        let prepared = try ChalkWritingPreparation(
-          text: text, layout: layout, timing: timing, limits: limits
-        )
-        let plan = prepared.renderPlanCache.renderPlan
-        resolvedPreparation = prepared
-        resolvedRenderPlan = plan
-        resolvedContactPlan = try Self.makeContactPlan(plan: plan, style: style)
-        resolvedPlaybackIdentity = ChalkWritingPlaybackIdentity(
-          preparation: prepared, plan: plan, style: style, animation: animation, motion: motion)
-        resolvedFailureDescription = nil
-      } catch {
-        resolvedPreparation = nil
-        resolvedRenderPlan = nil
-        resolvedContactPlan = nil
-        resolvedPlaybackIdentity = nil
-        resolvedFailureDescription = String(describing: error)
-      }
-    }
-    preparation = resolvedPreparation
-    renderPlan = resolvedRenderPlan
-    contactPlan = resolvedContactPlan
-    playbackIdentity = resolvedPlaybackIdentity
-    failureDescription = resolvedFailureDescription
+    self.init(
+      prepare: { try ChalkWritingPreparation(text: text, layout: layout, timing: timing, limits: limits) },
+      style: style, animation: animation, motion: motion,
+      progress: progress, onCompletion: onCompletion)
   }
 
   /// Labeled convenience form for call sites that prefer `text:`.
@@ -90,19 +56,13 @@ public struct ChalkWritingText: View {
     onCompletion: (() -> Void)? = nil
   ) {
     self.init(
-      text,
-      layout: layout,
-      timing: timing,
-      limits: limits,
-      style: style,
-      animation: animation,
-      motion: motion,
-      progress: progress,
-      onCompletion: onCompletion
-    )
+      text, layout: layout, timing: timing, limits: limits,
+      style: style, animation: animation, motion: motion,
+      progress: progress, onCompletion: onCompletion)
   }
 
-  /// Creates a view from already validated semantic writing data.
+  /// Semantic validation does not prove that a later style-specific contact
+  /// plan fits its resource budget. Both public entry paths share one result.
   public init(
     preparation: ChalkWritingPreparation,
     style: ChalkWritingStyle = .chalk,
@@ -111,106 +71,78 @@ public struct ChalkWritingText: View {
     progress: Double? = nil,
     onCompletion: (() -> Void)? = nil
   ) {
+    self.init(
+      prepare: { preparation },
+      style: style, animation: animation, motion: motion,
+      progress: progress, onCompletion: onCompletion)
+  }
+
+  private init(
+    prepare: () throws -> ChalkWritingPreparation,
+    style: ChalkWritingStyle,
+    animation: ChalkWritingAnimation,
+    motion: ChalkWritingMotionStyle,
+    progress: Double?,
+    onCompletion: (() -> Void)?
+  ) {
     self.style = style
     self.animation = animation
     self.motion = motion
     self.onCompletion = onCompletion
     if let progress, !progress.isFinite || !(0...1).contains(progress) {
-      self.preparation = nil
-      self.renderPlan = nil
-      self.contactPlan = nil
-      self.playbackIdentity = nil
-      self.failureDescription =
-        ChalkLineEffectsError.invalidProgress(progress)
-        .localizedDescription
-      self.fixedProgress = nil
+      fixedProgress = nil
+      state = .failed(ChalkLineEffectsError.invalidProgress(progress).localizedDescription)
       return
     }
-    let plan = preparation.renderPlanCache.renderPlan
-    self.preparation = preparation
-    self.renderPlan = plan
+    fixedProgress = progress
     do {
-      self.contactPlan = try Self.makeContactPlan(plan: plan, style: style)
+      let preparation = try prepare()
+      let plan = preparation.renderPlanCache.renderPlan
+      let contacts = try preparation.renderPlanCache.contactPlan(style: style)
+      state = .ready(
+        plan: plan, contactPlan: contacts,
+        identity: ChalkWritingPlaybackIdentity(
+          preparation: preparation, plan: plan, style: style,
+          animation: animation, motion: motion))
     } catch {
-      preconditionFailure("validated chalk contact preparation failed: \(error)")
+      state = .failed(String(describing: error))
     }
-    self.playbackIdentity = ChalkWritingPlaybackIdentity(
-      preparation: preparation,
-      plan: plan,
-      style: style,
-      animation: animation,
-      motion: motion
-    )
-    self.failureDescription = nil
-    self.fixedProgress = progress
   }
 
-  private static func makeContactPlan(
-    plan: ChalkWritingRenderPlan,
-    style: ChalkWritingStyle
-  ) throws -> ChalkPreparedContactPlan? {
-    let configuration = style.configuration
-    if configuration.grainAmount == 0,
-      configuration.erosionAmount == 0,
-      configuration.edgeRoughness == 0
-    {
-      return nil
-    }
-    let material = ChalkRenderMaterial.liveText(configuration)
-    guard material.executionTopology(for: .strokeGeometry) == .contactDabs else {
-      return nil
-    }
-    let strokes = plan.strokes.map { stroke in
-      ChalkRenderStrokeGeometry(
-        id: stroke.timing.strokeID,
-        points: stroke.points.map { point in
-          ChalkRenderStrokePoint(
-            x: point.x,
-            y: point.y,
-            width: point.width * style.lineWidthMultiplier
-          )
-        }
-      )
-    }
-    return try ChalkPreparedContactPlan.prepare(strokes: strokes, material: material)
-  }
-
-  /// Internal state evidence used by package-level regression tests. The
-  /// public view exposes the same state through its rendered error label.
   var isShowingPreparationFailure: Bool {
-    preparation == nil && failureDescription != nil
+    if case .failed = state { return true }
+    return false
+  }
+
+  private var accessibilityDescription: String {
+    switch state {
+    case .ready(_, _, let identity): identity.sceneText
+    case .failed(let message): "Unable to prepare writing: \(message)"
+    }
   }
 
   public var body: some View {
     Group {
-      if let renderPlan, let playbackIdentity {
+      switch state {
+      case .ready(let plan, let contacts, let identity):
         if let fixedProgress {
           ChalkWritingCanvas(
-            plan: renderPlan,
-            contactPlan: contactPlan,
-            style: style,
-            animation: animation,
-            motion: motion,
-            progress: fixedProgress
-          )
+            plan: plan, contactPlan: contacts, style: style,
+            animation: animation, motion: motion, progress: fixedProgress)
         } else {
           ChalkWritingTimeline(
-            plan: renderPlan,
-            contactPlan: contactPlan,
-            style: style,
-            animation: animation,
-            motion: motion,
-            onCompletion: onCompletion
-          )
-          .id(playbackIdentity)
+            plan: plan, contactPlan: contacts, style: style,
+            animation: animation, motion: motion, onCompletion: onCompletion)
+            .id(identity)
         }
-      } else {
-        Text(failureDescription ?? "Unable to prepare writing")
+      case .failed(let message):
+        Text(message)
           .font(.footnote)
           .foregroundStyle(.secondary)
-          .accessibilityLabel("Unable to prepare writing")
       }
     }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(accessibilityDescription)
   }
 }
 
