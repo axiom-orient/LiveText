@@ -143,18 +143,17 @@ LIVETEXT_EXCLUDE_MACOS_DEMO=1 xcodebuild -scheme LiveText-Package -destination '
 기존 `InlineFlowRegion(..., layoutStyle: .inline)`과 `.magazine(style)` 호출은
 유지됩니다. `.inline`은 기본 flow와 같고, `.magazine(style)`은 magazine 전용
 `magazineStyle:` initializer와 동일한 검증과 결과를 사용합니다.
-`InlineLiveTextLayoutConfiguration`의 기본값은 기존 공개 버전과 동일한 빈 magazine
-정책입니다. 이전 로컬 복사본의 inline 동작이 필요하면 `layoutStyle: .inline`을
-명시하세요. Inline 정책은 magazine의 최소 텍스트 폭 검사를 적용하지 않습니다.
+`InlineLiveTextLayoutConfiguration`의 기본값은 빈 magazine 정책입니다.
+Scene을 inline 흐름으로 만들려면 `layoutStyle: .inline`을 지정합니다. Inline 정책은
+magazine의 최소 텍스트 폭 검사를 적용하지 않습니다.
 
 폭만 지정하는 `InlineLayoutEngine.layout(prepared:width:)`와 width-only streaming은
 기본 inline flow를 사용합니다. Magazine의 최소 텍스트 폭은 명시적으로 선택한
 magazine flow에만 적용됩니다. Prepared 데이터의 정책 정보가 없는 경우에는 두
 기본 정책의 digest 중 하나와 일치하고 실제 내용·수량 검증까지 통과한 데이터만
 복원합니다. 사용자 정의 한도가 빠진 데이터는 추측해서 복원하지 않습니다.
-이전 로컬 버전과 공개 버전에서 사용한 두 digest 구분 문자열을 검증하며, 복원한
-데이터의 revision은 기존 continuation과 연결될 수 있도록 보존합니다. 새로 만드는
-데이터는 현재 공개 버전의 구분 문자열을 계속 사용합니다.
+준비 데이터는 현재·이전 digest 구분 문자열을 검증하고, 기존 continuation이
+이어지도록 복원한 revision을 보존합니다. 새 데이터는 현재 구분 문자열을 사용합니다.
 복원 대상도 현재 source mapping·줄바꿈 메타데이터 검증을 통과해야 합니다.
 이 규칙과 맞지 않는 예전 prepared cache는 오류를 반환하므로, host가 원본
 `InlineDocument`에서 다시 준비해야 합니다.
@@ -171,7 +170,6 @@ stroke ID·seed가 같은 접촉은 문서 내 순서를 바꿔도 유지되며,
 색연필 stroke의 부분 샘플링은 전체 계획 생성과 같은 안전한 보간을 사용해,
 유한한 극단 좌표와 선폭에서도 overflow로 중단되지 않도록 합니다.
 텍스트를 직접 받는 initializer는 호출마다 새 preparation을 만듭니다. 새 문서에는 새 preparation을 만드세요.
-새 configuration/default는 마른 분필이며, 저장된 명시적 재질과 style 없는 구형 JSON의 가는 분필은 보존합니다.
 
 분필 geometry 개선은 `ChalkWritingText`의 semantic contact 경로에 적용됩니다.
 정확한 SVG path와 일반 inline renderer는 기존 mask 경로를 사용합니다.
