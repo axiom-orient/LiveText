@@ -284,6 +284,7 @@ private final class SVGDelegate: NSObject, XMLParserDelegate {
 
   private var stack: [StyleContext] = [.init()]
   private var ignoredDepth = 0
+  private var insidePaintElement = false
 
   func parser(
     _ parser: XMLParser,
@@ -321,6 +322,11 @@ private final class SVGDelegate: NSObject, XMLParserDelegate {
     }
 
     do {
+      // Paint elements may contain descriptive metadata, handled above, but
+      // are not containers for rendered geometry or inherited group styles.
+      guard !insidePaintElement else {
+        throw SVGFailure.unsupportedElement("rendered child of a paint element")
+      }
       let attributes = try normalizedAttributes(attributeDict)
       try validateAttributes(attributes, for: name)
 
@@ -359,6 +365,7 @@ private final class SVGDelegate: NSObject, XMLParserDelegate {
         stack.append(try applying(attributes: attributes, to: stack.last!, allowsOpacity: false))
 
       case "path", "rect", "circle", "ellipse", "line", "polyline", "polygon":
+        insidePaintElement = true
         let style = try applying(attributes: attributes, to: stack.last!, allowsOpacity: true)
         guard !style.hidden else { return }
         guard shapes.count < DustResourceLimits.maximumSVGShapes else {
@@ -414,6 +421,8 @@ private final class SVGDelegate: NSObject, XMLParserDelegate {
     let name = elementName.lowercased()
     if name == "svg" || name == "g" || name == "a" {
       if stack.count > 1 { stack.removeLast() }
+    } else {
+      insidePaintElement = false
     }
   }
 

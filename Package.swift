@@ -153,6 +153,11 @@ var targets: [Target] = [
       dependencies: ["LiveTextPresentation", "DustKit"],
       path: "Tests/LiveTextPresentationTests"
     ),
+    .testTarget(
+      name: "DustKitTests",
+      dependencies: ["DustKit", "DustKitResources"],
+      path: "Tests/DustKitTests"
+    ),
   ]
 #endif
 

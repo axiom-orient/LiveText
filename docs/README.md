@@ -119,6 +119,10 @@ text/emoji 렌더링, reveal과 실제 bitmap을 검사합니다. Snapshot은 �
 제한한다는 뜻은 아닙니다.
 `LiveTextPresentationTests`는 iOS에서 실제 SwiftUI snapshot을 사용해 revision
 교체, 중복 debounce, 취소·reset, 실패 후 기존 source 보존과 재시도를 검사합니다.
+`DustKitTests`는 iOS의 raster 한도·SVG 거부 경로·입자 예산, shader entry point와
+실제 Metal pipeline·texture·metadata 생성을 검사합니다. 도형 안에 렌더링 도형을
+중첩한 SVG는 거부하며 `title` 등 설명용 자식과 정상 형제 도형은 유지합니다.
+Metal 생성 검사는 전체 GPU frame 표시나 실제 기기의 FPS 검증을 대신하지 않습니다.
 마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
 직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
 `Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.
