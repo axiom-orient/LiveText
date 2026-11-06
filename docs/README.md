@@ -73,6 +73,14 @@ let fineLineMaterial = InlineWritingConfiguration(
 
 ## 제품
 
+SVG import는 제한된 정적 도형을 검증해 변환합니다. `LiveTextSVGImporter`는 inline
+coverage·trajectory를 만들고, `LiveTextSVGArtworkImporter`는 여러 색의 정적 path를
+만듭니다. DTD·외부 참조·script와 지원하지 않는 속성은 오류로 거부합니다.
+Artwork의 부분적인 container opacity와 fill+stroke 전체 opacity는 현재 평면
+출력 모델이 정확히 표현할 수 없어 오류를 반환합니다. `fill-opacity`와
+`stroke-opacity`, 단일 paint의 opacity는 지원합니다. 이 제한은 각 paint의 alpha를
+곱하는 것과 그룹 전체를 합성하는 것이 다르다는 [SVG 규칙](https://www.w3.org/TR/SVG2/render.html#ObjectAndGroupOpacityProperties)에 따릅니다.
+
 | Product | 역할 |
 |---|---|
 | LiveText | Core + Layout + renderer-neutral Effects |

@@ -429,7 +429,7 @@ final class SVGDocumentParser {
       let viewport = try parseViewport(attributes)
       sceneSize = viewport.size
       viewBoxTransform = viewport.transform
-      let style = try mergedStyle(SVGStyle(), attributes: attributes)
+      let style = try mergedStyle(SVGStyle(), attributes: attributes, isContainer: true)
       let localTransform = try parseTransform(attributes["transform"])
       frames.append(
         SVGFrame(
@@ -448,8 +448,9 @@ final class SVGDocumentParser {
     guard let parent = frames.last else {
       throw LiveTextSVGImportError.invalidDocument("missing parent element")
     }
-    guard parent.name != "path" else {
-      throw LiveTextSVGImportError.invalidDocument("elements cannot be nested inside path")
+    guard parent.name == "svg" || parent.name == "g" else {
+      throw LiveTextSVGImportError.invalidDocument(
+        "elements cannot be nested inside \(parent.name)")
     }
     switch name {
     case "g":
@@ -461,7 +462,7 @@ final class SVGDocumentParser {
           "opacity",
         ]
       )
-      let style = try mergedStyle(parent.style, attributes: attributes)
+      let style = try mergedStyle(parent.style, attributes: attributes, isContainer: true)
       let localTransform = try parseTransform(attributes["transform"])
       frames.append(
         SVGFrame(
@@ -732,6 +733,10 @@ final class SVGDocumentParser {
           ? .fill(color: effectiveColor, rule: style.fillRule)
           : nil
       case (.solid(let fillColor), .solid(let strokeColor)) where mode == .artwork:
+        guard style.opacity == 0 || style.opacity == 1 else {
+          throw LiveTextSVGImportError.unsupportedSemantic(
+            "fill-and-stroke opacity requires isolated compositing")
+        }
         role = .coverageFill
         let effectiveFill = try applyingOpacity(fillColor, opacity: style.fillOpacity * style.opacity)
         strokeStyle = try makeStrokeStyle(
@@ -1073,7 +1078,9 @@ final class SVGDocumentParser {
     }
   }
 
-  private func mergedStyle(_ base: SVGStyle, attributes: [String: String]) throws -> SVGStyle {
+  private func mergedStyle(
+    _ base: SVGStyle, attributes: [String: String], isContainer: Bool = false
+  ) throws -> SVGStyle {
     var style = base
     if let fill = attributes["fill"] { style.fill = try parsePaint(fill) }
     if let stroke = attributes["stroke"] { style.stroke = try parsePaint(stroke) }
@@ -1109,7 +1116,7 @@ final class SVGDocumentParser {
       }
     }
     if let miter = attributes["stroke-miterlimit"] {
-      style.miterLimit = try SVGNumberScanner.parseLength(miter)
+      style.miterLimit = try SVGNumberScanner.parseNumber(miter)
       guard style.miterLimit >= 1 else {
         throw LiveTextSVGImportError.invalidDocument("stroke-miterlimit must be at least one")
       }
@@ -1117,7 +1124,12 @@ final class SVGDocumentParser {
     if let value = attributes["fill-opacity"] { style.fillOpacity = try parseOpacity(value) }
     if let value = attributes["stroke-opacity"] { style.strokeOpacity = try parseOpacity(value) }
     if let value = attributes["opacity"] {
-      style.opacity *= try parseOpacity(value)
+      let opacity = try parseOpacity(value)
+      guard mode != .artwork || !isContainer || opacity == 0 || opacity == 1 else {
+        throw LiveTextSVGImportError.unsupportedSemantic(
+          "container opacity requires isolated compositing")
+      }
+      style.opacity *= opacity
     }
     return style
   }
@@ -1138,7 +1150,7 @@ final class SVGDocumentParser {
   }
 
   private func parseOpacity(_ raw: String) throws -> Double {
-    let value = try SVGNumberScanner.parseLength(raw)
+    let value = try SVGNumberScanner.parseNumber(raw)
     guard value.isFinite, (0...1).contains(value) else {
       throw LiveTextSVGImportError.invalidDocument("opacity must be between zero and one")
     }

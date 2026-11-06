@@ -25,10 +25,17 @@ struct SVGNumberScanner {
     } else {
       normalized = trimmed
     }
-    var scanner = SVGNumberScanner(normalized)
+    return try parseNumber(normalized)
+  }
+
+  static func parseNumber(_ source: String) throws -> Double {
+    guard !source.utf8.contains(0x2C) else {
+      throw LiveTextSVGImportError.invalidDocument("value must be one finite number")
+    }
+    var scanner = SVGNumberScanner(source)
     let values = try scanner.allNumbers()
     guard values.count == 1, let value = values.first, value.isFinite else {
-      throw LiveTextSVGImportError.invalidDocument("length must be one finite number")
+      throw LiveTextSVGImportError.invalidDocument("value must be one finite number")
     }
     return value
   }

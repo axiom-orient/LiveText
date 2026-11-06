@@ -44,6 +44,15 @@ public struct LiveTextSVGArtworkPath: Codable, Equatable, Sendable {
     self.commands = commands
     self.paint = paint
   }
+
+  private enum CodingKeys: String, CodingKey { case commands, paint }
+
+  public init(from decoder: Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    try self.init(
+      commands: values.decode([LiveTextSVGCommand].self, forKey: .commands),
+      paint: values.decode(LiveTextSVGArtworkPaint.self, forKey: .paint))
+  }
 }
 
 public struct LiveTextSVGArtworkDocument: Codable, Equatable, Sendable {

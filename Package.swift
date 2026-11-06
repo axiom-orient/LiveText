@@ -46,6 +46,11 @@ var targets: [Target] = [
     name: "PackageManifestTests",
     path: "Tests/PackageManifestTests"
   ),
+  .testTarget(
+    name: "LiveTextSVGTests",
+    dependencies: ["LiveTextSVG", "LiveTextLayout"],
+    path: "Tests/LiveTextSVGTests"
+  ),
 ]
 
 #if !os(Linux)
