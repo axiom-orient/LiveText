@@ -108,6 +108,13 @@ Linux에서는 Apple target/test와 데모가 제외됩니다.
 xcodebuild -scheme LiveTextProductConsumer -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' test
 ```
 
+저장소 루트의 iOS 전체 패키지 테스트는 다음처럼 macOS 전용 데모만 명시적으로 제외합니다.
+이 환경 변수를 설정하지 않으면 macOS 데모 product와 실행 스크립트는 그대로 제공됩니다.
+
+```sh
+LIVETEXT_EXCLUDE_MACOS_DEMO=1 xcodebuild -scheme LiveText-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' test
+```
+
 기존 `InlineFlowRegion(..., layoutStyle: .inline)`과 `.magazine(style)` 호출은
 유지됩니다. `.inline`은 기본 flow와 같고, `.magazine(style)`은 magazine 전용
 `magazineStyle:` initializer와 동일한 검증과 결과를 사용합니다.
@@ -133,7 +140,7 @@ Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함�
 
 실제 iOS/Metal·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
 
-2026-11-06 검증에서 Xcode의 iOS `LiveText-Package` 전체 테스트 scheme은 macOS 전용 `LiveTextDemo`까지 빌드하려다 AppKit import에서 실패했습니다. 개별 라이브러리 소비 경로와는 별도로 해결할 테스트 구성 문제입니다. 또한 macOS 27.0.1에서 standalone View와 Canvas의 분필 가장자리 픽셀 비교가 허용 범위를 벗어났습니다. 두 경로의 질감 필터 누출은 수정했지만, 가장자리 차이는 아직 원인을 확인 중입니다.
+2026-11-06 iOS 26.5 Simulator에서 위 전체 패키지 테스트를 실행하면 분필 접촉 raster의 진행률 전후 비교 한 건이 실패합니다. 이전 영역의 네 픽셀에서 8-bit 채널 값이 각각 1만큼 달랐으며, 원인은 아직 확정되지 않았습니다. macOS 27.0.1의 별도 로컬 테스트에서는 standalone View와 Canvas의 분필 가장자리 픽셀 비교도 허용 범위를 벗어났습니다. 이 두 결과를 테스트 성공으로 처리하지 않습니다.
 
 ## 문서와 검증 범위
 

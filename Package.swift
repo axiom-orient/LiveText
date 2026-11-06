@@ -1,6 +1,7 @@
 // swift-tools-version: 6.0
 
 import PackageDescription
+import Foundation
 
 var products: [Product] = [
   .library(name: "LiveText", targets: ["LiveText"]),
@@ -40,6 +41,10 @@ var targets: [Target] = [
     name: "LiveTextLayoutContractTests",
     dependencies: ["LiveTextLayout"],
     path: "Tests/LiveTextLayoutContractTests"
+  ),
+  .testTarget(
+    name: "PackageManifestTests",
+    path: "Tests/PackageManifestTests"
   ),
 ]
 
@@ -126,12 +131,16 @@ var targets: [Target] = [
 #endif
 
 #if os(macOS)
-  products.append(.executable(name: "LiveTextDemo", targets: ["LiveTextDemo"]))
-  targets.append(.executableTarget(
-    name: "LiveTextDemo",
-    dependencies: ["ChalkLineEffects", "LiveTextChalkRendering", "LiveTextEffects", "LiveTextApple", "LiveTextWritingUI"],
-    path: "Examples/LiveTextDemo"
-  ))
+  // The manifest is evaluated on macOS even when Xcode targets iOS. Keep the
+  // demo by default, with an explicit library-test graph for iOS test runs.
+  if ProcessInfo.processInfo.environment["LIVETEXT_EXCLUDE_MACOS_DEMO"] != "1" {
+    products.append(.executable(name: "LiveTextDemo", targets: ["LiveTextDemo"]))
+    targets.append(.executableTarget(
+      name: "LiveTextDemo",
+      dependencies: ["ChalkLineEffects", "LiveTextChalkRendering", "LiveTextEffects", "LiveTextApple", "LiveTextWritingUI"],
+      path: "Examples/LiveTextDemo"
+    ))
+  }
 #endif
 
 let package = Package(
