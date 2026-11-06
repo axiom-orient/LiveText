@@ -2,6 +2,10 @@
 
 The following upstream notices apply to adapted portions of LiveText. Keep these notices with the corresponding source when redistributing the package.
 
+## Texture resources
+
+The project owner states that the bundled PNG textures were created by the owner using ChatGPT. This provenance statement does not change the copyright notice in the repository README or the upstream source notices below.
+
 ## perfect-freehand
 
 Relevant LiveText file:

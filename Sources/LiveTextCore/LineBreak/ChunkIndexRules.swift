@@ -90,12 +90,9 @@ func normalizeLineStartChunkIndexFromHint(
     return normalizeLineStartChunkIndex(prepared: prepared, cursor: &cursor)
   }
 
-  var nextChunkIndex = chunkIndex
-  while nextChunkIndex < prepared.chunks.count
-    && cursor.segmentIndex >= prepared.chunks[nextChunkIndex].consumedEndSegmentIndex
-  {
-    nextChunkIndex += 1
-  }
+  let nextChunkIndex = advanceChunkIndex(
+    prepared: prepared, chunkIndex: chunkIndex, segmentIndex: cursor.segmentIndex
+  )
 
   if nextChunkIndex >= prepared.chunks.count {
     return -1
@@ -122,14 +119,25 @@ func findChunkIndexForStartFromHint(
     return findChunkIndexForStart(prepared: prepared, segmentIndex: segmentIndex)
   }
 
+  let nextChunkIndex = advanceChunkIndex(
+    prepared: prepared, chunkIndex: chunkIndex, segmentIndex: segmentIndex
+  )
+
+  return nextChunkIndex < prepared.chunks.count ? nextChunkIndex : -1
+}
+
+private func advanceChunkIndex(
+  prepared: PreparedText,
+  chunkIndex: Int,
+  segmentIndex: Int
+) -> Int {
   var nextChunkIndex = chunkIndex
   while nextChunkIndex < prepared.chunks.count
     && segmentIndex >= prepared.chunks[nextChunkIndex].consumedEndSegmentIndex
   {
     nextChunkIndex += 1
   }
-
-  return nextChunkIndex < prepared.chunks.count ? nextChunkIndex : -1
+  return nextChunkIndex
 }
 
 func chunkEndsWithHardBreak(_ chunk: PreparedChunk) -> Bool {
