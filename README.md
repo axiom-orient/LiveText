@@ -10,11 +10,12 @@
 ## Swift Package Manager
 
 Xcode에서 `https://github.com/axiom-orient/LiveText.git`을 패키지로 추가합니다.
-안정판 `0.2.0`을 사용할 수 있습니다. 수정 내용과 전체 검사 결과는
+안정판 `0.2.1`을 사용할 수 있습니다. 수정 내용과 전체 검사 결과는
 [배포 검토 결과](docs/RELEASE_READINESS.md)를 확인하세요.
+`0.2.1`은 SVG 검사와 문서를 보강한 패치이며 제품 소스·API는 `0.2.0`과 같습니다.
 
 ```swift
-.package(url: "https://github.com/axiom-orient/LiveText.git", exact: "0.2.0")
+.package(url: "https://github.com/axiom-orient/LiveText.git", exact: "0.2.1")
 ```
 
 일반 Apple 화면에는 `LiveTextApple`과 `LiveTextWritingUI`, 독립 분필 표현에는

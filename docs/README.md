@@ -181,7 +181,7 @@ Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함�
 
 Snapshot은 사전 검증한 크기에 sRGB 8-bit premultiplied RGBA로 한 번 그립니다.
 크기·배율·좌상단 원점을 보존하며, 진행률과 반복 호출에 따른 픽셀 재현성은
-이 공개 snapshot 경계에서 검사합니다. `0.2.0`의 전체 검사 결과와 수정 근거는
+이 공개 snapshot 경계에서 검사합니다. 최신 안정판의 전체 검사 결과와 수정 근거는
 [배포 검토 결과](RELEASE_READINESS.md)에 기록합니다.
 
 ## 문서와 검증 범위
