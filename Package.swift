@@ -136,7 +136,7 @@ var targets: [Target] = [
       name: "LiveTextWritingUIContractTests",
       dependencies: [
         "LiveTextWritingUI", "LiveTextLayout", "LiveTextCore", "LiveTextEffects",
-        "LiveTextCanvas", "LiveTextSwiftUI", "ChalkLineEffects",
+        "LiveTextCanvas", "LiveTextSwiftUI", "ChalkLineEffects", "LiveTextAppleRendering",
       ],
       path: "Tests/LiveTextWritingUIContractTests"
     ),

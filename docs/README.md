@@ -173,7 +173,7 @@ Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함�
 
 실제 iOS/Metal·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
 
-2026-11-06 iOS 26.5 Simulator에서 위 전체 패키지 테스트를 실행하면 분필 접촉 raster의 진행률 전후 비교 한 건이 실패합니다. 이전 영역의 네 픽셀에서 8-bit 채널 값이 각각 1만큼 달랐으며, 원인은 아직 확정되지 않았습니다. macOS 27.0.1의 별도 로컬 테스트에서는 standalone View와 Canvas의 분필 가장자리 픽셀 비교도 허용 범위를 벗어났습니다. 이 두 결과를 테스트 성공으로 처리하지 않습니다.
+2026-11-06 iOS 26.5 Simulator에서 위 전체 패키지 테스트를 실행하면 분필 접촉 raster의 진행률 전후 비교 한 건이 실패합니다. 이전 영역의 네 픽셀에서 8-bit 채널 값이 각각 1만큼 달랐으며, 원인은 아직 확정되지 않았습니다. macOS 27.0.1에서는 standalone View와 Canvas의 분필 가장자리 픽셀 비교도 허용 범위를 벗어납니다. 이 검사는 `LiveTextWritingUIContractTests`에 원래 허용 범위를 유지해 포함했습니다. 이 두 결과를 테스트 성공으로 처리하지 않습니다.
 
 ## 문서와 검증 범위
 
