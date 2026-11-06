@@ -96,6 +96,7 @@ public enum InlineAppleRasterSnapshotError: Error, LocalizedError, Sendable {
 /// The caller owns the already-configured view and its visual revision. This function performs
 /// no document preparation, layout, reveal scheduling, or effect orchestration; it rasterizes
 /// the supplied presentation exactly once at the requested logical size and scale.
+/// Content outside that size is clipped, with the top-leading origin preserved.
 @MainActor
 public enum InlineApplePresentationSnapshotter {
   public static func snapshot<Content: View>(
@@ -148,7 +149,10 @@ package enum InlineAppleRasterSnapshotter {
       )
     }
 
-    let renderer = ImageRenderer(content: content)
+    let renderer = ImageRenderer(
+      content: content
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .clipped())
     renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
     renderer.scale = scale
     renderer.isOpaque = false

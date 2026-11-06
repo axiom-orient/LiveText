@@ -140,6 +140,14 @@ var targets: [Target] = [
       ],
       path: "Tests/LiveTextWritingUIContractTests"
     ),
+    .testTarget(
+      name: "LiveTextAppleRenderingTests",
+      dependencies: [
+        "LiveTextAppleRendering", "LiveTextCanvas", "LiveTextSwiftUI",
+        "LiveTextLayout", "LiveTextCore", "LiveTextEffects",
+      ],
+      path: "Tests/LiveTextAppleRenderingTests"
+    ),
   ]
 #endif
 

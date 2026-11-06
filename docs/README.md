@@ -112,6 +112,11 @@ Linux에서는 Apple target/test와 데모가 제외됩니다.
 continuation, append replay·취소, hit·selection의 회귀를 검사합니다.
 `LiveTextEffectsTests`는 재질 복원, 모션의 시작·종료와 Reduce Motion, geometry의
 유한성·분배 상한을 검사합니다.
+`LiveTextAppleRenderingTests`는 append의 실패·취소·재진입, 이미지 cache,
+text/emoji 렌더링, reveal과 실제 bitmap을 검사합니다. Snapshot은 요청한 크기에
+좌상단 정렬로 잘라 출력합니다. 고정 크기 SwiftUI 콘텐츠도 출력 raster의 사전
+검증 한도를 넘어갈 수 없습니다. 이 한도는 콘텐츠 내부의 모든 메모리 할당을
+제한한다는 뜻은 아닙니다.
 마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
 직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
 `Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.
