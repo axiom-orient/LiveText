@@ -306,6 +306,8 @@ package enum ChalkMaskRenderer {
     documentOriginAtContextZero: CGPoint,
     in context: inout GraphicsContext
   ) {
+    // Copies draw into the same layer but keep each pass's filters independent.
+    // Assigning a copy back would carry its alpha threshold into the next pass.
     for plan in plans where plan.opacity > 0 {
       var loss = context
       loss.blendMode = .destinationOut
@@ -319,7 +321,6 @@ package enum ChalkMaskRenderer {
         documentOriginAtContextZero: documentOriginAtContextZero,
         in: &loss
       )
-      context = loss
     }
   }
 

@@ -109,6 +109,8 @@ Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함�
 
 실제 iOS/Metal·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
 
+2026-11-06 검증에서 Xcode의 iOS `LiveText-Package` 전체 테스트 scheme은 macOS 전용 `LiveTextDemo`까지 빌드하려다 AppKit import에서 실패했습니다. 개별 라이브러리 소비 경로와는 별도로 해결할 테스트 구성 문제입니다. 또한 macOS 27.0.1에서 standalone View와 Canvas의 분필 가장자리 픽셀 비교가 허용 범위를 벗어났습니다. 두 경로의 질감 필터 누출은 수정했지만, 가장자리 차이는 아직 원인을 확인 중입니다.
+
 ## 문서와 검증 범위
 
 이 안내는 현재 실행·API·입출력 계약을 설명하고, [PERFORMANCE.md](PERFORMANCE.md)는
