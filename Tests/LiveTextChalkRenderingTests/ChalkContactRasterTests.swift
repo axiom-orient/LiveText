@@ -1,5 +1,6 @@
 import CoreGraphics
 import LiveTextEffects
+import LiveTextAppleRendering
 import SwiftUI
 import XCTest
 @testable import LiveTextChalkRendering
@@ -31,10 +32,8 @@ final class ChalkContactRasterTests: XCTestCase {
         documentOriginAtContextZero: .zero,
         clipBounds: CGRect(x: 0, y: 0, width: Self.width, height: Self.height), in: &context)
     }.frame(width: CGFloat(Self.width), height: CGFloat(Self.height))
-    let renderer = ImageRenderer(content: canvas)
-    renderer.scale = 1
-    let rendered = renderer.cgImage
-    let image = try XCTUnwrap(rendered, "The real SwiftUI renderer must produce a bitmap")
+    let image = try InlineApplePresentationSnapshotter.snapshot(
+      content: canvas, size: CGSize(width: Self.width, height: Self.height)).image
     let colorSpace = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
     var bytes = [UInt8](repeating: 0, count: Self.width * Self.height * 4)
     try bytes.withUnsafeMutableBytes { storage in

@@ -156,7 +156,26 @@ package enum InlineAppleRasterSnapshotter {
     renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
     renderer.scale = scale
     renderer.isOpaque = false
-    guard let image = renderer.cgImage else {
+    // Own the output format from the first frame. ImageRenderer.cgImage can
+    // change its intermediate raster path after repeated filtered draws.
+    // Drawing once into the same explicit RGBA format avoids that transition.
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+      let context = CGContext(
+        data: nil, width: Int(pixelWidth), height: Int(pixelHeight),
+        bitsPerComponent: 8, bytesPerRow: Int(pixelWidth) * 4, space: colorSpace,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+          | CGBitmapInfo.byteOrder32Big.rawValue)
+    else {
+      throw InlineAppleRasterSnapshotError.renderingFailed(
+        width: width, height: height, scale: Double(scale))
+    }
+    context.scaleBy(x: scale, y: scale)
+    var didRender = false
+    renderer.render(rasterizationScale: scale) { _, draw in
+      draw(context)
+      didRender = true
+    }
+    guard didRender, let image = context.makeImage() else {
       throw InlineAppleRasterSnapshotError.renderingFailed(
         width: width,
         height: height,

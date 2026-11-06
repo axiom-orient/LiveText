@@ -129,7 +129,9 @@ var targets: [Target] = [
     ], path: "Sources/LiveTextPresentation"),
     .testTarget(
       name: "LiveTextChalkRenderingTests",
-      dependencies: ["LiveTextChalkRendering", "ChalkLineEffects", "LiveTextEffects"],
+      dependencies: [
+        "LiveTextChalkRendering", "ChalkLineEffects", "LiveTextEffects", "LiveTextAppleRendering",
+      ],
       path: "Tests/LiveTextChalkRenderingTests"
     ),
     .testTarget(

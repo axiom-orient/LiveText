@@ -7,6 +7,19 @@ import SwiftUI
 /// It shares material topology/planning/resources with the standalone SwiftUI chalk modifier.
 /// No text shaping, layout, reveal timing, or hit geometry is recomputed here.
 package enum ChalkMaskRenderer {
+  /// A loss mask is one isolated Canvas composition. Keeping destination-out
+  /// passes here avoids View-level blend groups changing mask evaluation.
+  static func paintLossMask(
+    plans: [ChalkPigmentLossLayerPlan],
+    bounds: CGRect,
+    in context: inout GraphicsContext
+  ) {
+    context.drawLayer { mask in
+      mask.fill(Path(bounds), with: .color(.white))
+      applyLoss(plans, bounds: bounds, documentOriginAtContextZero: .zero, in: &mask)
+    }
+  }
+
   package static func paint(
     mask: Path,
     target: WritingMaterialTarget,
@@ -56,7 +69,7 @@ package enum ChalkMaskRenderer {
 
       applySubstrateTexture(
         configuration: configuration,
-        bounds: bounds,
+        bounds: textureBounds(fallback: bounds, in: surface),
         documentOriginAtContextZero: documentOriginAtContextZero,
         in: &surface
       )
@@ -176,7 +189,7 @@ package enum ChalkMaskRenderer {
       }
       applyLoss(
         ChalkSurfacePlanner.lossLayers(material: material, layer: .hatchField),
-        bounds: field.union(mask.boundingRect),
+        bounds: textureBounds(fallback: field.union(mask.boundingRect), in: hatchLayer),
         documentOriginAtContextZero: documentOriginAtContextZero,
         in: &hatchLayer
       )
@@ -238,11 +251,16 @@ package enum ChalkMaskRenderer {
       CGAffineTransform(
         translationX: CGFloat(plan.offsetX),
         y: CGFloat(plan.offsetY)))
-    let bounds = mask.boundingRect.union(first.boundingRect).union(second.boundingRect)
-      .union(blurred.boundingRect)
+    let bounds = textureBounds(
+      fallback: mask.boundingRect.union(first.boundingRect).union(second.boundingRect)
+        .union(blurred.boundingRect),
+      in: context)
 
-    context.drawLayer { dust in
-      dust.opacity = min(1, max(0, plan.opacity))
+    // Opacity belongs to the completed dust group, after overlapping deposits
+    // and the source-alpha cutout have been composed.
+    var output = context
+    output.opacity *= min(1, max(0, plan.opacity))
+    output.drawLayer { dust in
       dust.fill(first, with: .color(color), style: FillStyle(eoFill: true))
       dust.fill(second, with: .color(color), style: FillStyle(eoFill: true))
       if plan.blurRadius > 0 {
@@ -278,7 +296,7 @@ package enum ChalkMaskRenderer {
     guard opacity > 0 else { return }
     let transformed = mask.applying(
       CGAffineTransform(translationX: CGFloat(offsetX), y: CGFloat(offsetY)))
-    let bounds = transformed.boundingRect
+    let bounds = textureBounds(fallback: transformed.boundingRect, in: context)
     guard isFinite(bounds) else { return }
 
     context.drawLayer { pigment in
@@ -402,6 +420,14 @@ package enum ChalkMaskRenderer {
 
   private static func isFinite(_ point: CGPoint) -> Bool {
     point.x.isFinite && point.y.isFinite
+  }
+
+  /// Blur and shifted pigment extend beyond the source shape. The texture
+  /// domain is the finite visible canvas, just like the View adapter's mask.
+  private static func textureBounds(fallback: CGRect, in context: GraphicsContext) -> CGRect {
+    let clip = context.clipBoundingRect
+    return !clip.isInfinite && !clip.isNull && isFinite(clip)
+      && clip.width > 0 && clip.height > 0 ? clip : fallback
   }
 
   private static func isFinite(_ rect: CGRect) -> Bool {

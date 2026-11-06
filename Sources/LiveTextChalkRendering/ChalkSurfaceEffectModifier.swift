@@ -1,6 +1,26 @@
 import LiveTextEffects
 import SwiftUI
 
+private extension View {
+  /// Equivalent source-alpha multiplication using isolated RGBA groups.
+  /// Filtered Canvas masks can disappear in ImageRenderer's CGContext path
+  /// when evaluated through View.mask's dedicated mask rendering context.
+  func chalkAlphaMask<Mask: View>(@ViewBuilder _ mask: () -> Mask) -> some View {
+    overlay {
+      ZStack {
+        Color.white
+        mask().blendMode(.destinationOut)
+      }
+      .compositingGroup()
+      .blendMode(.destinationOut)
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
+    }
+    .compositingGroup()
+    .clipped()
+  }
+}
+
 private struct ChalkTextureLayer: View {
   let plan: ChalkPigmentLossLayerPlan
 
@@ -53,13 +73,10 @@ private struct ChalkPigmentMask: View {
   let plans: [ChalkPigmentLossLayerPlan]
 
   var body: some View {
-    ZStack {
-      Color.white
-      ForEach(Array(plans.enumerated()), id: \.offset) { _, plan in
-        ChalkTextureLayer(plan: plan).blendMode(.destinationOut)
-      }
+    Canvas { context, size in
+      ChalkMaskRenderer.paintLossMask(
+        plans: plans, bounds: CGRect(origin: .zero, size: size), in: &context)
     }
-    .compositingGroup()
     .allowsHitTesting(false)
     .accessibilityHidden(true)
   }
@@ -92,7 +109,7 @@ private struct ChalkHatchField: View {
         )
       }
     }
-    .mask {
+    .chalkAlphaMask {
       ChalkPigmentMask(
         plans: ChalkSurfacePlanner.lossLayers(material: material, layer: .hatchField)
       )
@@ -117,7 +134,7 @@ private struct ChalkDepositedFace<Content: View>: View {
               .blur(radius: CGFloat(layer.blurRadius))
               .offset(x: CGFloat(layer.offsetX), y: CGFloat(layer.offsetY))
               .opacity(layer.opacity)
-              .mask { ChalkTextureLayer(plan: layer.textureMask) }
+              .chalkAlphaMask { ChalkTextureLayer(plan: layer.textureMask) }
           }
         }
         .overlay { content.blendMode(.destinationOut) }
@@ -129,7 +146,7 @@ private struct ChalkDepositedFace<Content: View>: View {
         content
           .blur(radius: material.style == .dryBrush ? 0.32 : 0.12)
           .opacity(profile.underpaintOpacity)
-          .mask {
+          .chalkAlphaMask {
             ChalkPigmentMask(
               plans: ChalkSurfacePlanner.lossLayers(material: material, layer: .underpaint)
             )
@@ -137,7 +154,7 @@ private struct ChalkDepositedFace<Content: View>: View {
       }
       content
         .opacity(profile.faceOpacity)
-        .mask {
+        .chalkAlphaMask {
           ChalkPigmentMask(
             plans: ChalkSurfacePlanner.lossLayers(material: material, layer: .face)
           )
@@ -156,14 +173,14 @@ private struct ChalkHatchedFace<Content: View>: View {
     ZStack {
       content
         .opacity(profile.underpaintOpacity)
-        .mask {
+        .chalkAlphaMask {
           ChalkPigmentMask(
             plans: ChalkSurfacePlanner.lossLayers(material: material, layer: .underpaint)
           )
         }
       content
         .opacity(profile.faceOpacity)
-        .mask { ChalkHatchField(material: material) }
+        .chalkAlphaMask { ChalkHatchField(material: material) }
     }
     .compositingGroup()
   }
@@ -182,11 +199,11 @@ private struct ChalkSmudgedFace<Content: View>: View {
           .blur(radius: CGFloat(layer.blurRadius))
           .offset(x: CGFloat(layer.offsetX), y: CGFloat(layer.offsetY))
           .opacity(layer.opacity)
-          .mask { ChalkPigmentMask(plans: layer.lossLayers) }
+          .chalkAlphaMask { ChalkPigmentMask(plans: layer.lossLayers) }
       }
       content
         .opacity(profile.smudgeCoreOpacity)
-        .mask {
+        .chalkAlphaMask {
           ChalkPigmentMask(
             plans: ChalkSurfacePlanner.lossLayers(material: material, layer: .smudgeCore)
           )
@@ -251,7 +268,7 @@ private struct ChalkTextureComposition<Content: View>: View {
       .overlay { tintedContent.blendMode(.destinationOut) }
       .compositingGroup()
       .opacity(plan.opacity)
-      .mask { ChalkTextureLayer(plan: plan.textureMask) }
+      .chalkAlphaMask { ChalkTextureLayer(plan: plan.textureMask) }
       .allowsHitTesting(false)
       .accessibilityHidden(true)
     }

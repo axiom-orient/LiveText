@@ -489,18 +489,6 @@ final class LiveTextWritingRendererTests: XCTestCase {
     XCTAssertLessThanOrEqual(
       abs(viewBounds.maxY - painterBounds.maxY), 1
     )
-    print(
-      "[chalk-edge-parity] viewAlpha=\(viewAlpha) "
-        + "painterAlpha=\(painterAlpha) alphaDelta=\(alphaDelta) "
-        + "viewCoverage=\(viewCoverage) painterCoverage=\(painterCoverage) "
-        + "coverageDelta=\(coverageDelta) "
-        + "viewDustWeight=\(viewDustCoverageWeight) "
-        + "painterDustWeight=\(painterDustCoverageWeight) "
-        + "dustWeightDelta=\(dustCoverageWeightDelta) "
-        + "viewDust=\(viewDustCoverage) painterDust=\(painterDustCoverage) "
-        + "dustDelta=\(dustCoverageDelta) "
-        + "bounds=\(viewBounds)/\(painterBounds)"
-    )
   }
 
   func testChalkTextureUsesCallerColorAcrossSwiftUIAndCanvas() throws {
@@ -1530,61 +1518,41 @@ final class LiveTextWritingRendererTests: XCTestCase {
   }
 
   private func renderBack<Content: View>(_ content: Content, size: CGSize) throws -> CGImage {
-    let renderer = ImageRenderer(content: content.frame(width: size.width, height: size.height))
-    renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
-    renderer.scale = 1
-    guard let image = renderer.cgImage else {
-      throw XCTSkip("SwiftUI ImageRenderer did not produce a CGImage")
+    try InlineApplePresentationSnapshotter.snapshot(content: content, size: size).image
+  }
+
+  private func rgbaPixels(_ image: CGImage) -> [UInt8] {
+    var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+    let decoded = pixels.withUnsafeMutableBytes { storage -> Bool in
+      guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+        let context = CGContext(
+          data: storage.baseAddress, width: image.width, height: image.height,
+          bitsPerComponent: 8, bytesPerRow: image.width * 4, space: colorSpace,
+          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+      else { return false }
+      context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+      return true
     }
-    return image
+    XCTAssertTrue(decoded, "The real image must decode into RGBA pixels")
+    return pixels
   }
 
   private func alphaPixelCount(_ image: CGImage) -> Int {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     return stride(from: 3, to: rgba.count, by: 4).reduce(into: 0) { count, index in
       if rgba[index] > 0 { count += 1 }
     }
   }
 
   private func alphaCoverage(_ image: CGImage) -> Int {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     return stride(from: 3, to: rgba.count, by: 4).reduce(into: 0) { coverage, index in
       coverage += Int(rgba[index])
     }
   }
 
   private func alphaCoverage(_ image: CGImage, outside rect: CGRect) -> Int {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     var coverage = 0
     for y in 0..<image.height {
       for x in 0..<image.width {
@@ -1599,17 +1567,7 @@ final class LiveTextWritingRendererTests: XCTestCase {
   }
 
   private func alphaPixelCount(_ image: CGImage, outside rect: CGRect) -> Int {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     var count = 0
     for y in 0..<image.height {
       for x in 0..<image.width {
@@ -1625,17 +1583,7 @@ final class LiveTextWritingRendererTests: XCTestCase {
   }
 
   private func alphaPixelBounds(_ image: CGImage) -> CGRect? {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return nil }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     var minX = image.width
     var minY = image.height
     var maxX = -1
@@ -1660,17 +1608,7 @@ final class LiveTextWritingRendererTests: XCTestCase {
   }
 
   private func channelMeans(_ image: CGImage) -> (red: Double, green: Double, blue: Double) {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return (0, 0, 0) }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     var totalAlpha = 0.0
     var channels = (red: 0.0, green: 0.0, blue: 0.0)
     for index in stride(from: 0, to: rgba.count, by: 4) {
@@ -1690,17 +1628,7 @@ final class LiveTextWritingRendererTests: XCTestCase {
   }
 
   private func chromaticPixelCount(_ image: CGImage) -> Int {
-    var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
-    guard let context = CGContext(
-      data: &rgba,
-      width: image.width,
-      height: image.height,
-      bitsPerComponent: 8,
-      bytesPerRow: image.width * 4,
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return 0 }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    let rgba = rgbaPixels(image)
     return stride(from: 0, to: rgba.count, by: 4).reduce(into: 0) { count, index in
       guard rgba[index + 3] > 0 else { return }
       if rgba[index] != rgba[index + 1] || rgba[index + 1] != rgba[index + 2] {
@@ -1714,17 +1642,7 @@ final class LiveTextWritingRendererTests: XCTestCase {
   ) -> Int {
     guard lhs.width == rhs.width, lhs.height == rhs.height else { return Int.max }
     func bytes(_ image: CGImage) -> [UInt8] {
-      var values = [UInt8](repeating: 0, count: image.width * image.height * 4)
-      guard let context = CGContext(
-        data: &values,
-        width: image.width,
-        height: image.height,
-        bitsPerComponent: 8,
-        bytesPerRow: image.width * 4,
-        space: CGColorSpace(name: CGColorSpace.sRGB)!,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-      ) else { return [] }
-      context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+      let values = rgbaPixels(image)
       return values
     }
     let left = bytes(lhs)
