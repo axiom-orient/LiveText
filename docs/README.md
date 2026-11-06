@@ -173,13 +173,16 @@ stroke ID·seed가 같은 접촉은 문서 내 순서를 바꿔도 유지되며,
 
 분필 geometry 개선은 `ChalkWritingText`의 semantic contact 경로에 적용됩니다.
 정확한 SVG path와 일반 inline renderer는 기존 mask 경로를 사용합니다.
-append/cancellation와 Dust의 구현은 이번 변경에서 수정하지 않았습니다.
+append의 상태 권한과 Dust의 GPU 구현은 유지합니다.
 semantic Latin/Hangul catalog는 특정 사람의 실제 필적 복원이 아닙니다.
 Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함께 배포해야 합니다.
 
-실제 iOS/Metal·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
+실제 기기의 GPU frame·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
 
 2026-11-06 iOS 26.5 Simulator에서 위 전체 패키지 테스트를 실행하면 분필 접촉 raster의 진행률 전후 비교 한 건이 실패합니다. 이전 영역의 네 픽셀에서 8-bit 채널 값이 각각 1만큼 달랐으며, 원인은 아직 확정되지 않았습니다. macOS 27.0.1에서는 standalone View와 Canvas의 분필 가장자리 픽셀 비교도 허용 범위를 벗어납니다. 이 검사는 `LiveTextWritingUIContractTests`에 원래 허용 범위를 유지해 포함했습니다. 이 두 결과를 테스트 성공으로 처리하지 않습니다.
+
+최종 전체 실행의 추가 반복 렌더링 차이와 버전별 판정은
+[배포 검토 결과](RELEASE_READINESS.md)에 기록합니다.
 
 ## 문서와 검증 범위
 
