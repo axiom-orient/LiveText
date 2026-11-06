@@ -117,6 +117,8 @@ text/emoji 렌더링, reveal과 실제 bitmap을 검사합니다. Snapshot은 �
 좌상단 정렬로 잘라 출력합니다. 고정 크기 SwiftUI 콘텐츠도 출력 raster의 사전
 검증 한도를 넘어갈 수 없습니다. 이 한도는 콘텐츠 내부의 모든 메모리 할당을
 제한한다는 뜻은 아닙니다.
+`LiveTextPresentationTests`는 iOS에서 실제 SwiftUI snapshot을 사용해 revision
+교체, 중복 debounce, 취소·reset, 실패 후 기존 source 보존과 재시도를 검사합니다.
 마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
 직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
 `Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.

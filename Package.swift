@@ -148,6 +148,11 @@ var targets: [Target] = [
       ],
       path: "Tests/LiveTextAppleRenderingTests"
     ),
+    .testTarget(
+      name: "LiveTextPresentationTests",
+      dependencies: ["LiveTextPresentation", "DustKit"],
+      path: "Tests/LiveTextPresentationTests"
+    ),
   ]
 #endif
 
