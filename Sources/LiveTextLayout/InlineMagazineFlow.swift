@@ -176,7 +176,37 @@ public struct InlineMagazineStyle: Sendable, Hashable {
   }
 }
 
+/// Container-level composition policy.
+///
+/// Inline flow keeps the supplied exclusions. Magazine flow additionally
+/// projects host media to exclusions without changing the persisted schema.
+public enum InlineFlowLayoutStyle: Sendable, Hashable {
+  case inline
+  case magazine(InlineMagazineStyle)
+
+  /// The empty magazine policy used by current LiveText scenes.
+  public static var standard: Self { .magazine(.standard) }
+}
+
 extension InlineFlowRegion {
+  /// Creates a region with either inline or magazine composition.
+  public init(
+    rect: InlineFlowRect,
+    insets: InlineFlowInsets = .zero,
+    exclusions: [InlineFlowExclusion] = [],
+    revision: UInt64 = 0,
+    layoutStyle: InlineFlowLayoutStyle
+  ) throws {
+    switch layoutStyle {
+    case .inline:
+      try self.init(rect: rect, insets: insets, exclusions: exclusions, revision: revision)
+    case .magazine(let style):
+      try self.init(
+        rect: rect, insets: insets, exclusions: exclusions, revision: revision,
+        magazineStyle: style)
+    }
+  }
+
   /// Creates a flow region with host media projected into validated exclusions.
   public init(
     rect: InlineFlowRect,

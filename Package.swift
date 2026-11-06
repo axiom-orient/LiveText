@@ -4,6 +4,9 @@ import PackageDescription
 
 var products: [Product] = [
   .library(name: "LiveText", targets: ["LiveText"]),
+  .library(name: "LiveTextCore", targets: ["LiveTextCore"]),
+  .library(name: "LiveTextLayout", targets: ["LiveTextLayout"]),
+  .library(name: "LiveTextEffects", targets: ["LiveTextEffects"]),
   .library(name: "LiveTextSVG", targets: ["LiveTextSVG"]),
 ]
 
@@ -33,14 +36,23 @@ var targets: [Target] = [
     dependencies: ["LiveTextLayout"],
     path: "Sources/LiveTextSVG"
   ),
+  .testTarget(
+    name: "LiveTextLayoutContractTests",
+    dependencies: ["LiveTextLayout"],
+    path: "Tests/LiveTextLayoutContractTests"
+  ),
 ]
 
 #if !os(Linux)
   products += [
     .library(name: "LiveTextApple", targets: ["LiveTextApple"]),
+    .library(name: "LiveTextAppleRendering", targets: ["LiveTextAppleRendering"]),
+    .library(name: "LiveTextSwiftUI", targets: ["LiveTextSwiftUI"]),
+    .library(name: "LiveTextCanvas", targets: ["LiveTextCanvas"]),
     .library(name: "LiveTextWritingUI", targets: ["LiveTextWritingUI"]),
     .library(name: "DustKit", targets: ["DustKit"]),
     .library(name: "LiveTextPresentation", targets: ["LiveTextPresentation"]),
+    .library(name: "ChalkLineEffects", targets: ["ChalkLineEffects"]),
   ]
 
   targets += [
@@ -104,6 +116,11 @@ var targets: [Target] = [
       name: "LiveTextChalkRenderingTests",
       dependencies: ["LiveTextChalkRendering", "ChalkLineEffects", "LiveTextEffects"],
       path: "Tests/LiveTextChalkRenderingTests"
+    ),
+    .testTarget(
+      name: "LiveTextWritingUIContractTests",
+      dependencies: ["LiveTextWritingUI", "LiveTextLayout", "LiveTextCore"],
+      path: "Tests/LiveTextWritingUIContractTests"
     ),
   ]
 #endif

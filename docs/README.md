@@ -40,11 +40,13 @@ Release 빌드로 일반 문장과 6줄 문단을 각각 60번 측정합니다(�
 bitmap 생성에는 실제 픽셀 데이터 materialization을 포함하고 PNG·디스크 I/O는 제외합니다.
 [성능 분석과 검증 결과](PERFORMANCE.md)를 확인하세요.
 
-`LiveTextDemo`는 package 내부 target을 사용하는 macOS 예제입니다.
-외부 앱에서 일반 문서를 그릴 때는 공개 product인 `LiveTextWritingUI`를 사용합니다.
+`LiveTextDemo`는 macOS 예제입니다. 외부 앱에서 일반 문서를 그릴 때는
+`LiveTextApple`과 `LiveTextWritingUI`를 사용하고, 독립적인 획 표현은 `ChalkLineEffects`를 사용합니다.
 [DemoContent.swift](../Examples/LiveTextDemo/DemoContent.swift)가 실제 준비→레이아웃→렌더링 호출 예제입니다.
-`ChalkLineEffects`와 `LiveTextChalkRendering`은 별도 library product가 아닌 내부 target입니다.
-데모의 semantic writing 코드를 외부 앱의 공개 product 예제로 그대로 해석하지 마세요.
+`LiveTextChalkRendering`은 package 내부 target입니다.
+
+iOS에서는 [LiveTextSample.xcodeproj](../Samples/LiveTextSample/LiveTextSample.xcodeproj)를 열고
+`LiveTextSample` scheme을 실행합니다. 이 샘플은 package를 상대 경로로 참조합니다.
 
 ## 기본 재질과 선택
 
@@ -74,9 +76,16 @@ let fineLineMaterial = InlineWritingConfiguration(
 | Product | 역할 |
 |---|---|
 | LiveText | Core + Layout + renderer-neutral Effects |
+| LiveTextCore | 텍스트 분석·측정·줄바꿈 |
+| LiveTextLayout | inline 문서·레이아웃·interaction |
+| LiveTextEffects | renderer-neutral 재질·모션 |
 | LiveTextSVG | bounded SVG import |
 | LiveTextApple | Apple rendering facade |
+| LiveTextAppleRendering | Apple rendering adapters |
+| LiveTextSwiftUI | SwiftUI renderer |
+| LiveTextCanvas | Canvas renderer |
 | LiveTextWritingUI | SwiftUI/Canvas writing composition |
+| ChalkLineEffects | 독립 분필 writing·surface 표현 |
 | DustKit | terminal raster particle effect |
 | LiveTextPresentation | LiveText snapshot → Dust composition |
 | LiveTextDemo | macOS 실행·PNG 출력 예제 |
@@ -86,10 +95,25 @@ let fineLineMaterial = InlineWritingConfiguration(
 ```sh
 swift build
 swift test
+swift test --package-path Tests/Fixtures/ProductConsumer
 ```
 
 분필 테스트는 macOS/Xcode에서 실제 bitmap과 public semantic View를 검사합니다.
 Linux에서는 Apple target/test와 데모가 제외됩니다.
+마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
+직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
+`Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.
+
+```sh
+xcodebuild -scheme LiveTextProductConsumer -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' test
+```
+
+기존 `InlineFlowRegion(..., layoutStyle: .inline)`과 `.magazine(style)` 호출은
+유지됩니다. `.inline`은 기본 flow와 같고, `.magazine(style)`은 magazine 전용
+`magazineStyle:` initializer와 동일한 검증과 결과를 사용합니다.
+`InlineLiveTextLayoutConfiguration`의 기본값은 기존 공개 버전과 동일한 빈 magazine
+정책입니다. 이전 로컬 복사본의 inline 동작이 필요하면 `layoutStyle: .inline`을
+명시하세요. Inline 정책은 magazine의 최소 텍스트 폭 검사를 적용하지 않습니다.
 
 준비 실패·unsupported text·자원 초과는 오류로 드러납니다.
 접촉 분필의 획당 상한은 8,192개이며, 기존 spacing 기준으로 허용하던 길이를 유지합니다.

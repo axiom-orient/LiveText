@@ -16,7 +16,27 @@ public struct InlineLiveTextLayoutConfiguration: Sendable, Hashable {
   public let leading: Double
   public let revision: UInt64
   public let oversizedVectorPolicy: InlineOversizedVectorPolicy
-  public let magazineStyle: InlineMagazineStyle
+  /// The flow policy used when constructing the scene.
+  public let layoutStyle: InlineFlowLayoutStyle
+
+  /// The selected magazine style; `.standard` when the flow is inline.
+  public var magazineStyle: InlineMagazineStyle {
+    switch layoutStyle {
+    case .inline: return .standard
+    case .magazine(let style): return style
+    }
+  }
+
+  public init(
+    width: Double,
+    leading: Double = 0,
+    revision: UInt64 = 0,
+    oversizedVectorPolicy: InlineOversizedVectorPolicy = .reject
+  ) throws {
+    try self.init(
+      width: width, leading: leading, revision: revision,
+      oversizedVectorPolicy: oversizedVectorPolicy, magazineStyle: .standard)
+  }
 
   public init(
     width: Double,
@@ -24,6 +44,19 @@ public struct InlineLiveTextLayoutConfiguration: Sendable, Hashable {
     revision: UInt64 = 0,
     oversizedVectorPolicy: InlineOversizedVectorPolicy = .reject,
     magazineStyle: InlineMagazineStyle = .standard
+  ) throws {
+    try self.init(
+      width: width, leading: leading, revision: revision,
+      oversizedVectorPolicy: oversizedVectorPolicy, layoutStyle: .magazine(magazineStyle))
+  }
+
+  /// Selects inline flow or an explicit magazine policy.
+  public init(
+    width: Double,
+    leading: Double = 0,
+    revision: UInt64 = 0,
+    oversizedVectorPolicy: InlineOversizedVectorPolicy = .reject,
+    layoutStyle: InlineFlowLayoutStyle
   ) throws {
     guard width.isFinite, width >= 0 else {
       throw InlineLayoutError.invalidWidth(width)
@@ -35,7 +68,7 @@ public struct InlineLiveTextLayoutConfiguration: Sendable, Hashable {
     self.leading = leading
     self.revision = revision
     self.oversizedVectorPolicy = oversizedVectorPolicy
-    self.magazineStyle = magazineStyle
+    self.layoutStyle = layoutStyle
   }
 }
 
@@ -81,7 +114,7 @@ public struct InlineLiveTextScene<Provider: InlineAssetGeometryProvider> {
         height: Double.greatestFiniteMagnitude
       ),
       revision: configuration.revision,
-      magazineStyle: configuration.magazineStyle
+      layoutStyle: configuration.layoutStyle
     )
     let layout = try engine.layout(prepared: prepared, flow: flow)
     let plan = try InlineRenderPlan(prepared: prepared, layout: layout)

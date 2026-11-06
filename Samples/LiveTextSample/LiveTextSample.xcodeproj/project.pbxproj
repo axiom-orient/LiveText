@@ -1,0 +1,402 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000011 /* LiveTextSampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000001 /* LiveTextSampleApp.swift */; };
+		100000000000000000000012 /* SampleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000002 /* SampleModel.swift */; };
+		100000000000000000000013 /* SampleFeatureViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000003 /* SampleFeatureViews.swift */; };
+		100000000000000000000014 /* DustKitScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000004 /* DustKitScene.swift */; };
+		100000000000000000000015 /* SampleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000006 /* SampleComponents.swift */; };
+		100000000000000000000031 /* LiveTextApple in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000021 /* LiveTextApple */; };
+		100000000000000000000032 /* LiveTextSVG in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000022 /* LiveTextSVG */; };
+		100000000000000000000033 /* LiveTextWritingUI in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000023 /* LiveTextWritingUI */; };
+		100000000000000000000034 /* ChalkLineEffects in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000024 /* ChalkLineEffects */; };
+		100000000000000000000035 /* LiveTextPresentation in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000025 /* LiveTextPresentation */; };
+		100000000000000000000036 /* DustKit in Frameworks */ = {isa = PBXBuildFile; productRef = 100000000000000000000026 /* DustKit */; };
+		100000000000000000000101 /* LiveTextSampleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* LiveTextSampleUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		100000000000000000000001 /* LiveTextSampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTextSampleApp.swift; sourceTree = "<group>"; };
+		100000000000000000000002 /* SampleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleModel.swift; sourceTree = "<group>"; };
+		100000000000000000000003 /* SampleFeatureViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleFeatureViews.swift; sourceTree = "<group>"; };
+		100000000000000000000004 /* DustKitScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DustKitScene.swift; sourceTree = "<group>"; };
+		100000000000000000000006 /* SampleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleComponents.swift; sourceTree = "<group>"; };
+		100000000000000000000005 /* LiveTextSample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveTextSample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000007 /* LiveTextSampleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTextSampleUITests.swift; sourceTree = "<group>"; };
+		100000000000000000000008 /* LiveTextSampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LiveTextSampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		100000000000000000000041 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000031 /* LiveTextApple in Frameworks */,
+				100000000000000000000032 /* LiveTextSVG in Frameworks */,
+				100000000000000000000033 /* LiveTextWritingUI in Frameworks */,
+				100000000000000000000034 /* ChalkLineEffects in Frameworks */,
+				100000000000000000000035 /* LiveTextPresentation in Frameworks */,
+				100000000000000000000036 /* DustKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000044 /* UI Test Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		100000000000000000000051 = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000001 /* LiveTextSampleApp.swift */,
+				100000000000000000000002 /* SampleModel.swift */,
+				100000000000000000000003 /* SampleFeatureViews.swift */,
+				100000000000000000000004 /* DustKitScene.swift */,
+				100000000000000000000006 /* SampleComponents.swift */,
+				100000000000000000000053 /* UITests */,
+				100000000000000000000052 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		100000000000000000000052 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000005 /* LiveTextSample.app */,
+				100000000000000000000008 /* LiveTextSampleUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		100000000000000000000053 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000007 /* LiveTextSampleUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		100000000000000000000061 /* LiveTextSample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000071 /* Build configuration list for PBXNativeTarget "LiveTextSample" */;
+			buildPhases = (
+				100000000000000000000042 /* Sources */,
+				100000000000000000000041 /* Frameworks */,
+				100000000000000000000043 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LiveTextSample;
+			packageProductDependencies = (
+				100000000000000000000021 /* LiveTextApple */,
+				100000000000000000000022 /* LiveTextSVG */,
+				100000000000000000000023 /* LiveTextWritingUI */,
+				100000000000000000000024 /* ChalkLineEffects */,
+				100000000000000000000025 /* LiveTextPresentation */,
+				100000000000000000000026 /* DustKit */,
+			);
+			productName = LiveTextSample;
+			productReference = 100000000000000000000005 /* LiveTextSample.app */;
+			productType = "com.apple.product-type.application";
+		};
+		100000000000000000000063 /* LiveTextSampleUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000073 /* Build configuration list for PBXNativeTarget "LiveTextSampleUITests" */;
+			buildPhases = (
+				100000000000000000000046 /* UI Test Sources */,
+				100000000000000000000044 /* UI Test Frameworks */,
+				100000000000000000000045 /* UI Test Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				100000000000000000000048 /* LiveTextSample target dependency */,
+			);
+			name = LiveTextSampleUITests;
+			productName = LiveTextSampleUITests;
+			productReference = 100000000000000000000008 /* LiveTextSampleUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		100000000000000000000047 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000062 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 100000000000000000000061;
+			remoteInfo = LiveTextSample;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		100000000000000000000048 /* LiveTextSample target dependency */ = {
+			isa = PBXTargetDependency;
+			target = 100000000000000000000061 /* LiveTextSample */;
+			targetProxy = 100000000000000000000047 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXProject section */
+		100000000000000000000062 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					100000000000000000000061 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					100000000000000000000063 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 100000000000000000000061;
+					};
+				};
+			};
+			buildConfigurationList = 100000000000000000000072 /* Build configuration list for PBXProject "LiveTextSample" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 100000000000000000000051;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				100000000000000000000081 /* XCLocalSwiftPackageReference "../.." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 100000000000000000000052 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				100000000000000000000061 /* LiveTextSample */,
+				100000000000000000000063 /* LiveTextSampleUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		100000000000000000000043 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000045 /* UI Test Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		100000000000000000000042 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000011 /* LiveTextSampleApp.swift in Sources */,
+				100000000000000000000012 /* SampleModel.swift in Sources */,
+				100000000000000000000013 /* SampleFeatureViews.swift in Sources */,
+				100000000000000000000014 /* DustKitScene.swift in Sources */,
+				100000000000000000000015 /* SampleComponents.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000046 /* UI Test Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000101 /* LiveTextSampleUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		100000000000000000000091 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		100000000000000000000092 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		100000000000000000000093 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.entist.LiveTextSample;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		100000000000000000000094 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.entist.LiveTextSample;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		100000000000000000000095 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.entist.LiveTextSampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LiveTextSample;
+			};
+			name = Debug;
+		};
+		100000000000000000000096 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.entist.LiveTextSampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LiveTextSample;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		100000000000000000000071 /* Build configuration list for PBXNativeTarget "LiveTextSample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000093 /* Debug */,
+				100000000000000000000094 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000072 /* Build configuration list for PBXProject "LiveTextSample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000091 /* Debug */,
+				100000000000000000000092 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000073 /* Build configuration list for PBXNativeTarget "LiveTextSampleUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000095 /* Debug */,
+				100000000000000000000096 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		100000000000000000000081 /* XCLocalSwiftPackageReference "../.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		100000000000000000000021 /* LiveTextApple */ = {isa = XCSwiftPackageProductDependency; productName = LiveTextApple; };
+		100000000000000000000022 /* LiveTextSVG */ = {isa = XCSwiftPackageProductDependency; productName = LiveTextSVG; };
+		100000000000000000000023 /* LiveTextWritingUI */ = {isa = XCSwiftPackageProductDependency; productName = LiveTextWritingUI; };
+		100000000000000000000024 /* ChalkLineEffects */ = {isa = XCSwiftPackageProductDependency; productName = ChalkLineEffects; };
+		100000000000000000000025 /* LiveTextPresentation */ = {isa = XCSwiftPackageProductDependency; productName = LiveTextPresentation; };
+		100000000000000000000026 /* DustKit */ = {isa = XCSwiftPackageProductDependency; productName = DustKit; };
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 100000000000000000000062 /* Project object */;
+}
