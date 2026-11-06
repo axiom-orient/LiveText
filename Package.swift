@@ -51,6 +51,11 @@ var targets: [Target] = [
     dependencies: ["LiveTextSVG", "LiveTextLayout"],
     path: "Tests/LiveTextSVGTests"
   ),
+  .testTarget(
+    name: "LiveTextEffectsTests",
+    dependencies: ["LiveTextEffects"],
+    path: "Tests/LiveTextEffectsTests"
+  ),
 ]
 
 #if !os(Linux)
@@ -129,7 +134,10 @@ var targets: [Target] = [
     ),
     .testTarget(
       name: "LiveTextWritingUIContractTests",
-      dependencies: ["LiveTextWritingUI", "LiveTextLayout", "LiveTextCore"],
+      dependencies: [
+        "LiveTextWritingUI", "LiveTextLayout", "LiveTextCore", "LiveTextEffects",
+        "LiveTextCanvas", "LiveTextSwiftUI", "ChalkLineEffects",
+      ],
       path: "Tests/LiveTextWritingUIContractTests"
     ),
   ]

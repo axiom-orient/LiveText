@@ -377,28 +377,7 @@ public struct ColoredPencilFillPlan: Codable, Equatable, Hashable, Sendable {
   ) -> [Int] {
     let requests = requestedCounts.map { max(0, $0) }
     let budget = max(0, maximumHatches)
-    guard !requests.isEmpty, budget > 0 else {
-      return Array(repeating: 0, count: requests.count)
-    }
-    if requests.count > budget {
-      var allocations = Array(repeating: 0, count: requests.count)
-      for slot in 0..<budget {
-        let position = (Double(slot) + 0.5) * Double(requests.count) / Double(budget)
-        let index = min(requests.count - 1, Int(position))
-        if requests[index] > 0 { allocations[index] = 1 }
-      }
-      return allocations
-    }
-    var allocations = Array(repeating: 0, count: requests.count)
-    var remaining = budget
-    for index in requests.indices {
-      let remainingItems = requests.count - index
-      let fairShare = max(1, remaining / remainingItems)
-      let count = min(requests[index], fairShare)
-      allocations[index] = count
-      remaining -= count
-    }
-    return allocations
+    return allocateEffectBudget(requests: requests, budget: budget)
   }
 }
 
@@ -500,9 +479,9 @@ public struct ColoredPencilStrokePlan: Codable, Equatable, Hashable, Sendable {
         let fraction = min(1, max(0, (target - startDistance) / segmentLength))
         let first = points[index]
         let second = points[index + 1]
-        let x = first.x + (second.x - first.x) * fraction
-        let y = first.y + (second.y - first.y) * fraction
-        let width = first.width + (second.width - first.width) * fraction
+        let x = ColoredPencilPathPlan.interpolate(first.x, second.x, fraction: fraction)
+        let y = ColoredPencilPathPlan.interpolate(first.y, second.y, fraction: fraction)
+        let width = ColoredPencilPathPlan.interpolate(first.width, second.width, fraction: fraction)
         result.append(ColoredPencilPoint(validatedX: x, y: y, width: width))
       }
       break
@@ -1063,11 +1042,13 @@ public struct ColoredPencilPathPlan: Codable, Equatable, Hashable, Sendable {
     return normalized * scale
   }
 
-  private static func interpolate(
+  fileprivate static func interpolate(
     _ first: Double,
     _ second: Double,
     fraction: Double
   ) -> Double {
+    if fraction <= 0 || first == second { return first }
+    if fraction >= 1 { return second }
     let scale = max(1, abs(first), abs(second))
     let normalized = first / scale * (1 - fraction) + second / scale * fraction
     return min(1, max(-1, normalized)) * scale

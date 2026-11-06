@@ -110,6 +110,8 @@ swift test --package-path Tests/Fixtures/ProductConsumer
 Linux에서는 Apple target/test와 데모가 제외됩니다.
 `LiveTextLayoutContractTests`는 준비 데이터의 한도·식별자·복원, 폭과 flow 배치,
 continuation, append replay·취소, hit·selection의 회귀를 검사합니다.
+`LiveTextEffectsTests`는 재질 복원, 모션의 시작·종료와 Reduce Motion, geometry의
+유한성·분배 상한을 검사합니다.
 마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
 직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
 `Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.
@@ -151,6 +153,10 @@ stroke ID·seed가 같은 접촉은 문서 내 순서를 바꿔도 유지되며,
 마른 분필은 번들 tip의 alpha 점유율을 반영해 빈 brush slot이 농도를 과도하게 낮추지 않도록 합니다.
 `ChalkWritingText(preparation: ...)`에 같은 preparation을 재사용하면 마지막 재질·선폭의 접촉 계획 하나를 lock으로 보호해 재사용합니다.
 같은 재질·선폭에서 색과 진행률을 바꾸면 재료 geometry를 다시 준비하지 않습니다.
+일반 재질과 색연필의 문서 전체 예산은 양수 요청에만 분배합니다. 빈 대상의
+개수나 위치가 다른 대상의 효과를 사라지게 하거나 예산을 소모하지 않습니다.
+색연필 stroke의 부분 샘플링은 전체 계획 생성과 같은 안전한 보간을 사용해,
+유한한 극단 좌표와 선폭에서도 overflow로 중단되지 않도록 합니다.
 텍스트를 직접 받는 initializer는 호출마다 새 preparation을 만듭니다. 새 문서에는 새 preparation을 만드세요.
 새 configuration/default는 마른 분필이며, 저장된 명시적 재질과 style 없는 구형 JSON의 가는 분필은 보존합니다.
 

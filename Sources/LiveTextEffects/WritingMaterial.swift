@@ -1071,30 +1071,14 @@ public struct WritingMaterialPlan: Codable, Equatable, Hashable, Sendable {
   ) -> [Int] {
     let requests = requestedCounts.map { max(0, min(Self.maximumMarksPerTarget, $0)) }
     let budget = max(0, maximumMarks)
-    guard !requests.isEmpty, budget > 0 else {
-      return Array(repeating: 0, count: requests.count)
-    }
-    let total = requests.reduce(0, +)
-    guard total > budget else { return requests }
-    if requests.count > budget {
-      var result = Array(repeating: 0, count: requests.count)
-      for slot in 0..<budget {
-        let position = (Double(slot) + 0.5) * Double(requests.count) / Double(budget)
-        let index = min(requests.count - 1, Int(position))
-        if requests[index] > 0 { result[index] = 1 }
-      }
-      return result
-    }
-    var result = Array(repeating: 0, count: requests.count)
     var remaining = budget
-    for index in requests.indices {
-      let remainingItems = requests.count - index
-      let fairShare = max(1, remaining / remainingItems)
-      let allocation = min(requests[index], fairShare)
-      result[index] = allocation
-      remaining -= allocation
+    for request in requests {
+      guard request <= remaining else {
+        return allocateEffectBudget(requests: requests, budget: budget)
+      }
+      remaining -= request
     }
-    return result
+    return requests
   }
 
   private static func seed(
