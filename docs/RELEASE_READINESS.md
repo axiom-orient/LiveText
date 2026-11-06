@@ -1,83 +1,76 @@
-# 공개 배포 검토 — 0.2.0-rc.1
+# 공개 배포 검토 — 0.2.0
 
-2026-11-06 기준 **검토용 공개 배포**입니다. 안정판으로 판정하지 않습니다.
-빌드·공개 제품 연결과 아래 기능 검사는 확인했지만, 분필 bitmap 비교 실패가
-남아 있습니다. 실패 검사를 제외하거나 허용 범위를 늘리지 않았습니다.
+2026-11-06 기준 안정판 출시 검증을 통과했습니다. `0.2.0-rc.1`에서 남았던
+macOS 두 건과 iOS 한 건의 실패를 해결했습니다. 기존 assertion의 허용 범위는
+유지했으며 검사 제외나 재시도로 성공을 만들지 않았습니다.
 
-## 변경과 보존 경계
+## 원인과 수정
 
-- 줄바꿈의 중복 chunk 순회를 한 내부 함수로 통합했습니다.
-- 분필 texture loss pass의 filter 상태가 다음 pass로 누출되는 문제를 고쳤습니다.
-- 로컬 원본의 13개 library product와 flow 선택 API를 공개 패키지에 복원했습니다.
-  기존 공개 버전의 magazine·dry-brush 기본값과 로컬 원본의 inline·fine-line 기본값은
-  서로 다르므로 구분했습니다. 공개 버전의 기본값은 유지합니다.
-- 폭만 받는 inline 배치에서 magazine 최소 폭이 적용되던 문제를 고쳤습니다.
-- 저장된 준비 데이터는 현재 내용 검증과 알려진 두 digest domain을 검증하고
-  원래 revision을 보존합니다. 검증할 수 없는 custom-limit 데이터는 거부합니다.
-- SVG의 디코딩 검증 우회, 도형 내부 중첩, 단위가 붙은 scalar를 거부합니다.
-  평면 artwork 모델이 정확히 합성할 수 없는 부분 group/object opacity도 거부합니다.
-- 재질 예산은 양수 요청에만 분배합니다. 색연필 부분 샘플링은 공유하는 안전한
-  보간으로 극단적인 유한 좌표의 overflow 중단을 방지합니다.
-- SwiftUI snapshot 출력 크기를 실제로 고정하고 좌상단 기준으로 자릅니다.
-  요청 크기 검증 뒤 콘텐츠의 고정 크기가 출력 raster 한도를 우회하던 문제를 고쳤습니다.
-- append, 손글씨 재생, snapshot 교체·취소, Dust raster·입자·Metal 자원의
-  기존 회귀 검사를 공개 패키지에서 다시 실행하도록 연결했습니다.
+| 실패 | 확인한 원인·경계 | 수정과 회귀 확인 |
+|---|---|---|
+| macOS View/painter 분필 가장자리 | painter가 먼지 투명도를 개별 작업에 적용했고 텍스처 범위를 원본 도형 경계로 제한해, 합친 그룹과 blur 영역을 처리하는 View 경로와 달랐음 | 투명도는 완성된 그룹에 적용하고 텍스처는 유한한 visible clip 영역에 적용. 외곽 alpha 합 차이 305 → 134로 기존 192·10% 기준 통과 |
+| macOS 같은 설정의 반복 출력 | `ImageRenderer.cgImage`의 반복 출력에서 실제 bitmap 차이를 재현. 명시적인 RGBA 컨텍스트에 그린 출력은 일치했음 | 공개 snapshot이 자체 sRGB 8-bit premultiplied RGBA 컨텍스트를 소유하고 `ImageRenderer.render`로 한 번 출력. 첫 호출부터 8회 반복을 1·2·3배에서 byte 단위로 비교해 통과 |
+| iOS 진행률 전후 기존 영역 | 동일한 준비 데이터의 prefix 0.35/0.75를 편의 출력으로 내보내면 기존 네 픽셀에서 채널별 1/255 차이가 발생. 준비된 획·seed와 분리된 출력 경계에서 재현됨 | 실제 공개 snapshot 출력으로 비교. 기존 영역의 모든 RGBA 값이 일치하며 획 geometry·선택 규칙은 유지 |
 
-추가 외부 의존성은 없습니다. GitHub Actions·배포 자동화는 추가하지 않았습니다.
-공개 package API의 제거는 관찰되지 않았습니다. 이전 공개 태그와 원본 13개 모듈의
-API 비교 및 별도 소비자에서의 제품 import·생성 호출을 확인했습니다.
-이 검사는 모든 외부 앱과 저장 데이터의 호환성을 보증하지 않습니다.
+Apple의 비공개 렌더러 내부 구현은 원인으로 단정하지 않습니다. 위 비교는 같은
+입력의 출력 경로를 바꿔 확인한 실행 근거입니다. 픽셀 재현성 검증 범위는 공개
+snapshot API의 sRGB 8-bit 출력입니다.
+
+이 출력 경로를 적용하면서 filtered Canvas의 `View.mask`가 본문을 비우는 경우도
+검출했습니다. mask의 alpha 곱셈을 독립적인 RGBA 그룹 합성으로 구현해 해결했습니다.
+원래 View 구성은 유지하며, 첫 프레임부터 본문 농도가 남는 검사도 추가했습니다.
+[그룹 그리기](https://developer.apple.com/documentation/swiftui/graphicscontext/drawlayer(content:))와
+[직접 CGContext 출력](https://developer.apple.com/documentation/swiftui/imagerenderer/render(rasterizationscale:renderer:))을 사용합니다.
+
+Snapshot의 사전 크기·자원 한도 검증은 유지합니다. 0.5·1·2·3배에서 출력 크기,
+위·아래 원점과 clipping을 실제 픽셀로 검사합니다. 공개 API·제품 수·기본값은
+`0.2.0-rc.1`과 같습니다.
+
+## 정리
+
+- 임시 진단 테스트와 metric print를 제거했습니다.
+- 테스트의 중복 RGBA 디코더 8개를 한 함수로 통합했습니다. 디코딩 실패는 assertion으로 드러납니다.
+- 분필 loss-mask 계산은 기존 painter의 구현을 공유합니다.
+- 오래된 실패 안내는 이 문서로 대체해 사용 안내의 중복 상태 설명을 제거했습니다.
+- 추가 외부 의존성·GitHub Actions·배포 자동화는 없습니다.
 
 ## 최종 검증
 
-소스 기준 커밋: `e4919e6783e49d0217c7a676ac7b08e7cc74804c`.
-이후 릴리스 문서 변경은 제품 소스를 바꾸지 않습니다.
-환경: macOS 27.0.1, Xcode 27.2, iOS 26.5 iPhone 17 Pro Max Simulator.
+환경: macOS 27.0.1, Xcode 27.2, Swift 6.4.2,
+iOS 26.5 iPhone 17 Pro Max Simulator.
 
 | 검사 | 결과 |
 |---|---|
-| macOS Release 전체 빌드·데모 | 통과 |
-| 13개 공개 제품을 연결한 외부 소비자의 iOS Release 빌드 | 통과, iOS 16 배포 대상 |
-| macOS 전체 XCTest | 489개 실행, 2개 test case에서 assertion 3개 실패 |
-| macOS Swift Testing | 14개 통과 |
-| iOS 전체 XCTest | 564개 실행, 1개 test case에서 assertion 4개 실패 |
-| iOS Swift Testing | 13개 통과 |
-| iOS 샘플 UI | 9개 route·재생 control 검사 2개 통과; 이후 소스 변경 전 실행 |
-| 자격증명 패턴·개인 서명 파일·25 MiB 초과 파일 | 추적 파일 257개에서 발견되지 않음 |
+| macOS Debug 전체 | XCTest 491개 + Swift Testing 14개 통과 |
+| macOS Release 전체 | XCTest 491개 + Swift Testing 14개 통과 |
+| iOS Debug 전체 | XCTest 566개 + Swift Testing 13개 통과 |
+| iOS Release 전체 | XCTest 566개 + Swift Testing 13개 통과 |
+| macOS Release 패키지·데모 빌드 | 통과 |
+| 13개 공개 제품 외부 소비자 iOS Release 빌드 | 통과, iOS 16 배포 대상, 일반 Release 설정 |
+| iOS 샘플 UI | 9개 route·재생 control 검사 2개 통과 |
+| 자격증명 패턴 검사 | 후보 파일 259개에서 발견되지 않음 |
 
-macOS의 DustKit·Presentation iOS 전용 검사가 0개인 것은 실행 성공으로 합산하지 않습니다.
-Metal 검사는 shader library·pipeline·texture·particle metadata의 실제 생성을
-확인했으며 전체 GPU frame 표시·실기기 FPS 인증을 뜻하지 않습니다.
-민감정보 검사는 알려진 키 패턴과 파일명 검사이며 독립 보안 감사를 뜻하지 않습니다.
+macOS의 iOS 전용 target에 테스트가 없는 것은 실행 성공 개수에 더하지 않습니다.
+실행한 테스트의 skip은 관찰되지 않았습니다. 민감정보 패턴 검사는 독립 보안 감사를
+뜻하지 않으며, 실제 기기의 FPS·전력·VoiceOver와 Linux runtime은 이번 검증 범위에
+포함되지 않습니다.
 
-검증 명령은 [사용 안내](README.md#검사와-보존-계약)를 참고하세요.
-로컬 실행 로그는 `livetext-release-final-mac.log`, `livetext-release-final-ios.log`,
-`livetext-release-build-mac.log`, `livetext-release-consumer-ios.log`로 `/tmp`에 남겼습니다.
-이 파일들은 GitHub 배포물에 포함되지 않습니다.
+명령은 [사용 안내](README.md#검사와-보존-계약)를 따릅니다. Release iOS 검사는
+`-configuration Release ENABLE_TESTABILITY=YES`를 추가합니다.
+로컬 근거 로그는 `/tmp/livetext-stable-full-{mac,ios}.log`,
+`/tmp/livetext-stable-release-tests-{mac,ios}.log`,
+`/tmp/livetext-stable-release-{mac,ios}.log`, `/tmp/livetext-stable-sample-ui.log`입니다.
+이 실행 로그는 GitHub 배포물에 포함되지 않습니다.
 
-## 알려진 실패와 불확실성
-
-| 환경·검사 | 관찰 |
-|---|---|
-| macOS `testChalkSurfaceViewAndPainterShareTexturedEdgeCoverage` | View와 painter의 외곽 weighted alpha 합 차이 305; 허용 192 및 10% 초과 |
-| iOS `testDepositedGrainDoesNotMoveAsTheFrontAdvances` | 진행률 증가 전후 기존 영역의 네 픽셀이 채널별 1/255 차이 |
-| macOS `testPublicChalkFacadeAndLiveTextPainterUseCanonicalConfiguration` | 전체 실행에서 같은 설정의 반복 결과가 14픽셀 차이; 단독 재실행은 통과 |
-
-세 결과의 원인은 `[UNKNOWN]`입니다. 단독 재실행 통과를 수정 완료로 처리하지 않습니다.
-이 차이에 민감한 용도는 후보 버전의 실제 출력으로 판단해야 합니다.
-실제 기기의 GPU frame·에너지·최대 메모리, VoiceOver, Linux runtime,
-모든 폰트·RTL·OS별 adaptive glyph 조합은 이번 최종 검증 범위에 포함되지 않습니다.
-
-## 권리와 설치
-
-기존 `Copyright © Axient Inc.` 표시를 유지합니다. 프로젝트 전체를 MIT로
-재허가하지 않았습니다. PNG는 소유자가 ChatGPT로 직접 제작했다고 확인했습니다.
-적용되는 외부 코드의 필수 고지는 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)에 유지합니다.
+## 설치와 권리
 
 ```swift
-.package(url: "https://github.com/axiom-orient/LiveText.git", exact: "0.2.0-rc.1")
+.package(url: "https://github.com/axiom-orient/LiveText.git", exact: "0.2.0")
 ```
 
-다른 revision을 쓰던 소비자는 기존 package pin을 보관하고 후보를 검증하세요.
-되돌릴 때는 원래 pin으로 복원합니다. 구형 `0.1.0`에는 이번에 복원한 모든 제품이
-없으므로 모든 소비자의 대체 버전으로 간주하지 않습니다.
+13개 제품의 목록과 실제 사용 경로는 [사용 안내](README.md)를 확인하세요.
+`0.1.0`에는 복원된 모든 제품이 없으므로 모든 소비자의 대체 pin으로 간주하지 않습니다.
+
+기존 `Copyright © Axient Inc.` 표시를 유지하며 프로젝트 전체를 MIT로 재허가하지
+않았습니다. PNG의 소유자 제작 확인과 외부 코드 고지는
+[THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)에 유지합니다.

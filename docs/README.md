@@ -133,9 +133,11 @@ xcodebuild -scheme LiveTextProductConsumer -destination 'platform=iOS Simulator,
 
 저장소 루트의 iOS 전체 패키지 테스트는 다음처럼 macOS 전용 데모만 명시적으로 제외합니다.
 이 환경 변수를 설정하지 않으면 macOS 데모 product와 실행 스크립트는 그대로 제공됩니다.
+Release 테스트는 같은 명령에 `-configuration Release ENABLE_TESTABILITY=YES`를 추가합니다.
+이 설정은 최적화를 유지하며 `@testable` 검사의 내부 API 접근을 허용합니다.
 
 ```sh
-LIVETEXT_EXCLUDE_MACOS_DEMO=1 xcodebuild -scheme LiveText-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' test
+LIVETEXT_EXCLUDE_MACOS_DEMO=1 xcodebuild -scheme LiveText-Package -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' -parallel-testing-enabled NO test
 ```
 
 기존 `InlineFlowRegion(..., layoutStyle: .inline)`과 `.magazine(style)` 호출은
@@ -179,9 +181,9 @@ Bundle resources와 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)를 함�
 
 실제 기기의 GPU frame·VoiceOver·디스플레이 FPS·전체 plan의 aggregate memory limit은 별도 검증 대상입니다.
 
-2026-11-06 iOS 26.5 Simulator에서 위 전체 패키지 테스트를 실행하면 분필 접촉 raster의 진행률 전후 비교 한 건이 실패합니다. 이전 영역의 네 픽셀에서 8-bit 채널 값이 각각 1만큼 달랐으며, 원인은 아직 확정되지 않았습니다. macOS 27.0.1에서는 standalone View와 Canvas의 분필 가장자리 픽셀 비교도 허용 범위를 벗어납니다. 이 검사는 `LiveTextWritingUIContractTests`에 원래 허용 범위를 유지해 포함했습니다. 이 두 결과를 테스트 성공으로 처리하지 않습니다.
-
-최종 전체 실행의 추가 반복 렌더링 차이와 버전별 판정은
+Snapshot은 사전 검증한 크기에 sRGB 8-bit premultiplied RGBA로 한 번 그립니다.
+크기·배율·좌상단 원점을 보존하며, 진행률과 반복 호출에 따른 픽셀 재현성은
+이 공개 snapshot 경계에서 검사합니다. `0.2.0`의 전체 검사 결과와 수정 근거는
 [배포 검토 결과](RELEASE_READINESS.md)에 기록합니다.
 
 ## 문서와 검증 범위
