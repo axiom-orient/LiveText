@@ -49,12 +49,18 @@ final class SVGArtworkOpacityTests: XCTestCase {
   }
 
   func testOpacityAndMiterLimitDoNotAcceptLengthUnits() {
+    func source(_ attributes: String) -> String {
+      "<svg width=\"10\" height=\"10\"><path d=\"M1 1 L8 1 L8 8 Z\" fill=\"none\" stroke=\"black\" \(attributes)/></svg>"
+    }
+    XCTAssertNoThrow(try LiveTextSVGArtworkImporter.document(from: source("")))
+    XCTAssertNoThrow(try LiveTextSVGImporter.document(from: source("")))
     for attribute in [
       "opacity=\"0.5px\"", "fill-opacity=\"0.5px\"", "stroke-opacity=\"0.5px\"",
-      "stroke-miterlimit=\"4px\"", "opacity=\",0.5,\"",
+      "stroke-miterlimit=\"4px\"", "opacity=\",0.5,\"", "stroke-opacity=\"1,\"",
+      "opacity=\"1px\"", "fill-opacity=\"1px\"", "stroke-opacity=\"1px\"",
     ] {
-      let source = "<svg width=\"10\" height=\"10\"><path d=\"M1 1 L8 1 L8 8 Z\" fill=\"red\" \(attribute)/></svg>"
-      XCTAssertThrowsError(try LiveTextSVGArtworkImporter.document(from: source))
+      XCTAssertThrowsError(try LiveTextSVGArtworkImporter.document(from: source(attribute)))
+      XCTAssertThrowsError(try LiveTextSVGImporter.document(from: source(attribute)))
     }
   }
 }

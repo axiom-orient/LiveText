@@ -49,6 +49,7 @@ final class SVGParserAdmissionTests: XCTestCase {
 
   func testGeometryElementsCannotContainOtherGeometry() {
     for opening in [
+      "path d=\"M1 1 L8 8\"",
       "circle cx=\"5\" cy=\"5\" r=\"3\"",
       "ellipse cx=\"5\" cy=\"5\" rx=\"3\" ry=\"2\"",
       "polyline points=\"1,1 8,1 8,8\"",
@@ -57,6 +58,7 @@ final class SVGParserAdmissionTests: XCTestCase {
       let name = opening.split(separator: " ")[0]
       let source = "<svg width=\"10\" height=\"10\"><\(opening)>\(path)</\(name)></svg>"
       XCTAssertThrowsError(try LiveTextSVGArtworkImporter.document(from: source))
+      XCTAssertThrowsError(try LiveTextSVGImporter.document(from: source))
     }
   }
 }
