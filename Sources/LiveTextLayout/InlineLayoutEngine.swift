@@ -34,8 +34,7 @@ public struct InlineLayoutEngine: Sendable {
     let region = try InlineFlowRegion(
       rect: try InlineFlowRect(
         x: 0, y: 0, width: width, height: Double.greatestFiniteMagnitude
-      ),
-      magazineStyle: .standard
+      )
     )
     return try layout(
       prepared: prepared,

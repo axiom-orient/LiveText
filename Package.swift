@@ -39,7 +39,7 @@ var targets: [Target] = [
   ),
   .testTarget(
     name: "LiveTextLayoutContractTests",
-    dependencies: ["LiveTextLayout"],
+    dependencies: ["LiveTextLayout", "LiveTextCore"],
     path: "Tests/LiveTextLayoutContractTests"
   ),
   .testTarget(

@@ -100,6 +100,8 @@ swift test --package-path Tests/Fixtures/ProductConsumer
 
 분필 테스트는 macOS/Xcode에서 실제 bitmap과 public semantic View를 검사합니다.
 Linux에서는 Apple target/test와 데모가 제외됩니다.
+`LiveTextLayoutContractTests`는 준비 데이터의 한도·식별자·복원, 폭과 flow 배치,
+continuation, append replay·취소, hit·selection의 회귀를 검사합니다.
 마지막 명령은 별도의 Apple-platform 소비자 패키지가 13개 공개 library product를
 직접 연결하고 import하며 inline 및 magazine scene을 생성하는지 확인합니다. iOS에서는
 `Tests/Fixtures/ProductConsumer`에서 다음 명령으로 이 소비자 테스트를 실행할 수 있습니다.
@@ -121,6 +123,18 @@ LIVETEXT_EXCLUDE_MACOS_DEMO=1 xcodebuild -scheme LiveText-Package -destination '
 `InlineLiveTextLayoutConfiguration`의 기본값은 기존 공개 버전과 동일한 빈 magazine
 정책입니다. 이전 로컬 복사본의 inline 동작이 필요하면 `layoutStyle: .inline`을
 명시하세요. Inline 정책은 magazine의 최소 텍스트 폭 검사를 적용하지 않습니다.
+
+폭만 지정하는 `InlineLayoutEngine.layout(prepared:width:)`와 width-only streaming은
+기본 inline flow를 사용합니다. Magazine의 최소 텍스트 폭은 명시적으로 선택한
+magazine flow에만 적용됩니다. Prepared 데이터의 정책 정보가 없는 경우에는 두
+기본 정책의 digest 중 하나와 일치하고 실제 내용·수량 검증까지 통과한 데이터만
+복원합니다. 사용자 정의 한도가 빠진 데이터는 추측해서 복원하지 않습니다.
+이전 로컬 버전과 공개 버전에서 사용한 두 digest 구분 문자열을 검증하며, 복원한
+데이터의 revision은 기존 continuation과 연결될 수 있도록 보존합니다. 새로 만드는
+데이터는 현재 공개 버전의 구분 문자열을 계속 사용합니다.
+복원 대상도 현재 source mapping·줄바꿈 메타데이터 검증을 통과해야 합니다.
+이 규칙과 맞지 않는 예전 prepared cache는 오류를 반환하므로, host가 원본
+`InlineDocument`에서 다시 준비해야 합니다.
 
 준비 실패·unsupported text·자원 초과는 오류로 드러납니다.
 접촉 분필의 획당 상한은 8,192개이며, 기존 spacing 기준으로 허용하던 길이를 유지합니다.

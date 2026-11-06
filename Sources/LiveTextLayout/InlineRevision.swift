@@ -54,6 +54,11 @@ public struct InlinePreparationIdentityContext: Sendable, Hashable, Codable {
   }
 }
 
+enum InlinePreparationRevisionDomain: String, CaseIterable {
+  case current = "Packages/LiveText/inline-preparation-revision-v3"
+  case original = "LiveText/inline-preparation-revision-v3"
+}
+
 /// Incrementally builds the fixed preparation revision used by layout continuations.
 ///
 /// Each atom pair is encoded with the package-owned canonical typed encoder and
@@ -73,7 +78,8 @@ struct InlineRevisionBuilder {
 
   init(
     includeTextKernelPreparation: Bool,
-    limits: InlinePreparationLimits
+    limits: InlinePreparationLimits,
+    domain: InlinePreparationRevisionDomain = .current
   ) throws {
     let profile = try CanonicalIdentityEncoder.encode(
       Profile(
@@ -81,7 +87,7 @@ struct InlineRevisionBuilder {
         limits: limits
       )
     )
-    hasher.update(data: Data("Packages/LiveText/inline-preparation-revision-v3".utf8))
+    hasher.update(data: Data(domain.rawValue.utf8))
     hasher.update(data: Data([0]))
     hasher.update(data: profile)
   }
@@ -116,13 +122,15 @@ func canonicalInlinePreparationRevision(
   document: InlineDocument,
   preparedAtoms: [PreparedInlineDocument.Atom],
   identityContext: InlinePreparationIdentityContext,
+  domain: InlinePreparationRevisionDomain = .current,
   cancellation: InlineCancellationCheck = {}
 ) throws -> String {
   try identityContext.validateLimits()
 
   var builder = try InlineRevisionBuilder(
     includeTextKernelPreparation: identityContext.includeTextKernelPreparation,
-    limits: identityContext.limits
+    limits: identityContext.limits,
+    domain: domain
   )
   for (documentAtom, preparedAtom) in zip(document.atoms, preparedAtoms) {
     try cancellation()
@@ -130,4 +138,22 @@ func canonicalInlinePreparationRevision(
   }
   try cancellation()
   return builder.finalizedHex()
+}
+
+/// Recognizes only the two versioned domains used by this package. Restored
+/// values retain their proven revision so persisted continuations stay valid.
+func matchesInlinePreparationRevision(
+  _ revision: String,
+  document: InlineDocument,
+  preparedAtoms: [PreparedInlineDocument.Atom],
+  identityContext: InlinePreparationIdentityContext,
+  cancellation: InlineCancellationCheck = {}
+) throws -> Bool {
+  for domain in InlinePreparationRevisionDomain.allCases {
+    let candidate = try canonicalInlinePreparationRevision(
+      document: document, preparedAtoms: preparedAtoms,
+      identityContext: identityContext, domain: domain, cancellation: cancellation)
+    if candidate == revision { return true }
+  }
+  return false
 }

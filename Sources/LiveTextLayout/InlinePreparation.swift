@@ -435,7 +435,7 @@ public struct PreparedInlineDocument: Sendable, Hashable, Codable {
   public let document: InlineDocument
   public let atoms: [Atom]
   public let revision: String
-  /// Canonical profile/limit context used to derive `revision`.
+  /// Profile/limit context used with a recognized domain to derive `revision`.
   public let identityContext: InlinePreparationIdentityContext
   public let totalTextUTF16Units: Int
   public let totalGraphemes: Int
@@ -512,19 +512,19 @@ public struct PreparedInlineDocument: Sendable, Hashable, Codable {
       totalImageAtoms: totalImageAtoms,
       cancellation: cancellation
     )
-    let canonicalRevision = try canonicalInlinePreparationRevision(
+    guard try matchesInlinePreparationRevision(
+      revision,
       document: document,
       preparedAtoms: atoms,
       identityContext: identityContext,
       cancellation: cancellation
-    )
-    guard revision == canonicalRevision else {
+    ) else {
       throw InlineLayoutError.invalidRenderPlan
     }
     self.init(
       validatedDocument: document,
       atoms: atoms,
-      revision: canonicalRevision,
+      revision: revision,
       identityContext: identityContext,
       totalTextUTF16Units: totalTextUTF16Units,
       totalGraphemes: totalGraphemes,
@@ -563,6 +563,54 @@ public struct PreparedInlineDocument: Sendable, Hashable, Codable {
       return
     }
 
+    // Pre-context payloads can be admitted only when their digest proves one
+    // of the two historical default profiles. Custom-limit legacy payloads do
+    // not carry enough information to verify safely and are rejected.
+    // Bound the content before hashing. The full profile is the permissive
+    // default; cancellation-aware per-atom bounds are checked after matching.
+    try Self.validateContents(
+      document: document, atoms: atoms, identityContext: .full(),
+      totalTextUTF16Units: totalTextUTF16Units, totalGraphemes: totalGraphemes,
+      totalGlyphs: totalGlyphs, totalRuns: totalRuns, totalImageAtoms: totalImageAtoms,
+      cancellation: {})
+    let legacyContexts: [InlinePreparationIdentityContext] = [
+      .full(),
+      .cancellationAware(),
+    ]
+    for context in legacyContexts {
+      if try matchesInlinePreparationRevision(
+        revision,
+        document: document,
+        preparedAtoms: atoms,
+        identityContext: context
+      ) {
+        if context.mode == .cancellationAware {
+          try Self.validateContents(
+            document: document,
+            atoms: atoms,
+            identityContext: context,
+            totalTextUTF16Units: totalTextUTF16Units,
+            totalGraphemes: totalGraphemes,
+            totalGlyphs: totalGlyphs,
+            totalRuns: totalRuns,
+            totalImageAtoms: totalImageAtoms,
+            cancellation: {}
+          )
+        }
+        self.init(
+          validatedDocument: document,
+          atoms: atoms,
+          revision: revision,
+          identityContext: context,
+          totalTextUTF16Units: totalTextUTF16Units,
+          totalGraphemes: totalGraphemes,
+          totalGlyphs: totalGlyphs,
+          totalRuns: totalRuns,
+          totalImageAtoms: totalImageAtoms
+        )
+        return
+      }
+    }
     throw InlineLayoutError.invalidRenderPlan
   }
 
